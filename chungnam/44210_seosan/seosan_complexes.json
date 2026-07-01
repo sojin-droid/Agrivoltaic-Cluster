@@ -1,0 +1,174 @@
+{
+  "sgg_name": "서산",
+  "sgg_code": "44210",
+  "complexes": [
+    {
+      "name": "대죽일반산업단지",
+      "lon": 126.4091,
+      "lat": 36.9611,
+      "elec_gwh": 2572.8,
+      "elec_mwh": 2572812.0,
+      "scenarios": {
+        "S0": {
+          "mw": 732.15,
+          "ratio_pct": 37.42
+        },
+        "S1a": {
+          "mw": 732.15,
+          "ratio_pct": 37.42
+        },
+        "S1b": {
+          "mw": 2044.05,
+          "ratio_pct": 104.4
+        },
+        "S2": {
+          "mw": 2052.98,
+          "ratio_pct": 104.85
+        },
+        "S3": {
+          "mw": 2077.57,
+          "ratio_pct": 106.12
+        },
+        "S4": {
+          "mw": 2077.57,
+          "ratio_pct": 106.12
+        },
+        "S5": {
+          "mw": 2077.65,
+          "ratio_pct": 106.12
+        },
+        "S6": {
+          "mw": 2078.18,
+          "ratio_pct": 106.12
+        },
+        "S7": {
+          "mw": 2085.9,
+          "ratio_pct": 106.5
+        },
+        "S_MAX": {
+          "mw": 2085.9,
+          "ratio_pct": 106.5
+        }
+      },
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": 8.5,
+      "max_radius_km": 10.0
+    },
+    {
+      "name": "서산테크노밸리",
+      "lon": 126.45607,
+      "lat": 36.850986,
+      "elec_gwh": 579.2,
+      "elec_mwh": 579211.0,
+      "scenarios": {
+        "S0": {
+          "mw": 1409.55,
+          "ratio_pct": 319.8
+        },
+        "S1a": {
+          "mw": 1409.55,
+          "ratio_pct": 319.8
+        },
+        "S1b": {
+          "mw": 2755.43,
+          "ratio_pct": 625.12
+        },
+        "S2": {
+          "mw": 2782.95,
+          "ratio_pct": 631.35
+        },
+        "S3": {
+          "mw": 3062.1,
+          "ratio_pct": 694.65
+        },
+        "S4": {
+          "mw": 3062.1,
+          "ratio_pct": 694.65
+        },
+        "S5": {
+          "mw": 3065.25,
+          "ratio_pct": 695.4
+        },
+        "S6": {
+          "mw": 3088.88,
+          "ratio_pct": 700.72
+        },
+        "S7": {
+          "mw": 3105.23,
+          "ratio_pct": 704.47
+        },
+        "S_MAX": {
+          "mw": 3105.3,
+          "ratio_pct": 704.47
+        }
+      },
+      "min_radius_S0_km": 5.0,
+      "min_radius_S3_km": 3.5,
+      "max_radius_km": 10.0
+    },
+    {
+      "name": "한화토탈에너지스 대산공장 (대형 소비처)",
+      "lon": 126.347,
+      "lat": 36.997,
+      "elec_gwh": 1810,
+      "elec_mwh": 1810000,
+      "is_demand_only": true,
+      "elec_note": "직접공시 — 수전량 1,809,423 MWh('24 지속가능경영보고서, 전사≈대산 단일 생산기지) ≈ 1,810 GWh, 자가발전 1,032 GWh 별도(합산 2,841 GWh) / Scope 2 754,364 tCO2eq('24)는 공급자 고유계수 적용으로 단순 역산 부적합 / 좌표 근사(대산읍)",
+      "scenarios": {},
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": null,
+      "max_radius_km": 10.0
+    },
+    {
+      "name": "HD현대오일뱅크 대산공장 (대형 소비처)",
+      "lon": 126.41,
+      "lat": 36.995,
+      "elec_gwh": 2050,
+      "elec_mwh": 2050000,
+      "is_demand_only": true,
+      "elec_note": "직접공시 기반 — 구매전력 17,616 TJ('24 보고서, 전사≈대산) ≈ 2,052 GWh(1MWh=8.583GJ 환산), Scope 2 961,651 tCO2eq(스팀 포함) / 동일 단지 HD현대케미칼(별도법인, 전기 11,980 TJ ≈ 1,396 GWh) 미포함 / 주의: 대죽일반산단 통계와 일부 중복 가능 / 좌표 근사(대산읍 대죽리)",
+      "scenarios": {},
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": null,
+      "max_radius_km": 10.0
+    },
+    {
+      "name": "롯데케미칼 대산공장 (대형 소비처)",
+      "lon": 126.367,
+      "lat": 36.998,
+      "elec_gwh": 880,
+      "elec_mwh": 880000,
+      "is_demand_only": true,
+      "elec_note": "공시 역산 — 대산공장 Scope 2 650,497('24 ESG보고서)~724,970('24 환경정보공개시스템) tCO2eq(전기+스팀), 전사 전력비중 ~56% 적용 시 790~880 GWh, 880 채택(전량 전기 가정 상한 1,420~1,580) / 좌표 근사(대산읍)",
+      "scenarios": {},
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": null,
+      "max_radius_km": 10.0
+    },
+    {
+      "name": "LG화학 대산공장 (대형 소비처)",
+      "lon": 126.374,
+      "lat": 36.998,
+      "elec_gwh": 1000,
+      "elec_mwh": 1000000,
+      "is_demand_only": true,
+      "elec_note": "공시 역산 — 환경정보공개시스템 대산공장 Scope 2 543,404 tCO2eq('24, 전기+스팀), 전사 전력비중 ~81% 적용 ≈ 960 GWh(상한 1,183 GWh), 1,000 채택 / 좌표 근사(대산읍)",
+      "scenarios": {},
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": null,
+      "max_radius_km": 10.0
+    }
+  ],
+  "policy_map": {
+    "S0": "현행법",
+    "S1a": "농식품부 (진흥기타)",
+    "S1b": "농식품부 (보호구역)",
+    "S2": "농식품부 (시설재배지)",
+    "S3": "농식품부 (진흥구역, 법 개정) ★",
+    "S4": "국토부 (잡종지)",
+    "S5": "지자체·국토부 (경사·토지이용)",
+    "S6": "국방부 (군사완충)",
+    "S7": "환경부·국립공원공단",
+    "S_MAX": "산업부 (광업)"
+  }
+}

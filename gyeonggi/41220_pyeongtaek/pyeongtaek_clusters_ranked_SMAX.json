@@ -1,0 +1,30 @@
+{
+  "scenario": "SMAX",
+  "n_clusters": 2,
+  "clusters": [
+    {
+      "n": 57873,
+      "area": 50193039.94738149,
+      "ratio": 0.49999924126816736,
+      "mw": 2258.6867976321673,
+      "nearest_complex": "평택·오성일반산업단지",
+      "dist_km": 1.82,
+      "demand_gwh": 173.4,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 74.8,
+      "smaa_rank": 1
+    },
+    {
+      "n": 15983,
+      "area": 22966181.73080284,
+      "ratio": 0.49999606794129225,
+      "mw": 1033.478177886128,
+      "nearest_complex": "송탄일반산업단지",
+      "dist_km": 6.69,
+      "demand_gwh": 268.1,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 25.2,
+      "smaa_rank": 2
+    }
+  ]
+}

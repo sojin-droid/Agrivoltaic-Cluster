@@ -1,0 +1,18 @@
+{
+  "scenario": "S0",
+  "n_clusters": 1,
+  "clusters": [
+    {
+      "n": 1116,
+      "area": 1190686.2717279196,
+      "ratio": 0.3771757940984485,
+      "mw": 53.58088222775638,
+      "nearest_complex": "예산일반산업단지",
+      "dist_km": 14.59,
+      "demand_gwh": 228.1,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 100.0,
+      "smaa_rank": 1
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "scenario": "S3",
+  "n_clusters": 3,
+  "clusters": [
+    {
+      "n": 5232,
+      "area": 15123651.636762027,
+      "ratio": 0.49999402208944593,
+      "mw": 680.5643236542912,
+      "nearest_complex": "HD현대오일뱅크 대산공장 (대형 소비처)",
+      "dist_km": 9.08,
+      "demand_gwh": 2050,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 41.2,
+      "smaa_rank": 2
+    },
+    {
+      "n": 6898,
+      "area": 2811603.7786736684,
+      "ratio": 0.4999123530820383,
+      "mw": 126.52217004031507,
+      "nearest_complex": "서산테크노밸리",
+      "dist_km": 5.17,
+      "demand_gwh": 579.2,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 9.2,
+      "smaa_rank": 3
+    },
+    {
+      "n": 541,
+      "area": 1234214.247449837,
+      "ratio": 0.49841163398264376,
+      "mw": 55.53964113524266,
+      "nearest_complex": "대죽일반산업단지",
+      "dist_km": 5.56,
+      "demand_gwh": 2572.8,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 49.6,
+      "smaa_rank": 1
+    }
+  ]
+}

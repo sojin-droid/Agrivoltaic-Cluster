@@ -1,0 +1,54 @@
+{
+  "scenario": "S3",
+  "n_clusters": 4,
+  "clusters": [
+    {
+      "n": 27502,
+      "area": 19335710.43841418,
+      "ratio": 0.4998751465378487,
+      "mw": 870.1069697286381,
+      "nearest_complex": "천안백석일반산업단지",
+      "dist_km": 4.3,
+      "demand_gwh": 344.3,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 18.2,
+      "smaa_rank": 2
+    },
+    {
+      "n": 19921,
+      "area": 12784465.561356949,
+      "ratio": 0.49999841840366493,
+      "mw": 575.3009502610627,
+      "nearest_complex": "천안제4일반산업단지",
+      "dist_km": 3.65,
+      "demand_gwh": 416.3,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 81.8,
+      "smaa_rank": 1
+    },
+    {
+      "n": 3047,
+      "area": 2504319.656601672,
+      "ratio": 0.49995416603389303,
+      "mw": 112.69438454707524,
+      "nearest_complex": "천안제4일반산업단지",
+      "dist_km": 6.96,
+      "demand_gwh": 416.3,
+      "pareto_layer": 2,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 3
+    },
+    {
+      "n": 2117,
+      "area": 1715118.7360358674,
+      "ratio": 0.4995711294302061,
+      "mw": 77.18034312161403,
+      "nearest_complex": "천안제4일반산업단지",
+      "dist_km": 7.23,
+      "demand_gwh": 416.3,
+      "pareto_layer": 3,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 4
+    }
+  ]
+}

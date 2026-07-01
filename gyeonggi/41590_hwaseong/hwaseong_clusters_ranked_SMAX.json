@@ -1,0 +1,42 @@
+{
+  "scenario": "SMAX",
+  "n_clusters": 3,
+  "clusters": [
+    {
+      "n": 40170,
+      "area": 34750488.75142513,
+      "ratio": 0.4999936667555779,
+      "mw": 1563.7719938141308,
+      "nearest_complex": "향남제약일반산업단지",
+      "dist_km": 1.64,
+      "demand_gwh": 1051.2,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 100.0,
+      "smaa_rank": 1
+    },
+    {
+      "n": 3532,
+      "area": 3602918.4883865663,
+      "ratio": 0.4999981540692514,
+      "mw": 162.1313319773955,
+      "nearest_complex": "전곡해양일반산업단지",
+      "dist_km": 4.96,
+      "demand_gwh": 126.1,
+      "pareto_layer": 2,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 2
+    },
+    {
+      "n": 1614,
+      "area": 2591783.2240591166,
+      "ratio": 0.49616407706810306,
+      "mw": 116.63024508266024,
+      "nearest_complex": "향남제약일반산업단지",
+      "dist_km": 9.01,
+      "demand_gwh": 1051.2,
+      "pareto_layer": 2,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 3
+    }
+  ]
+}

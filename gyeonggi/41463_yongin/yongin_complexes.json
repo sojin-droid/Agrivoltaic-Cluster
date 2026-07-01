@@ -1,0 +1,83 @@
+{
+  "sgg_name": "용인",
+  "sgg_code": "41463",
+  "complexes": [
+    {
+      "name": "원삼반도체클러스터(예정)",
+      "lon": 127.319,
+      "lat": 37.1523,
+      "elec_gwh": 4362.5,
+      "elec_mwh": 4362480.0,
+      "scenarios": {
+        "S0": {
+          "mw": 81.68,
+          "ratio_pct": 2.47
+        },
+        "S1a": {
+          "mw": 81.68,
+          "ratio_pct": 2.47
+        },
+        "S1b": {
+          "mw": 145.43,
+          "ratio_pct": 4.35
+        },
+        "S2": {
+          "mw": 147.15,
+          "ratio_pct": 4.43
+        },
+        "S3": {
+          "mw": 162.6,
+          "ratio_pct": 4.88
+        },
+        "S4": {
+          "mw": 162.6,
+          "ratio_pct": 4.88
+        },
+        "S5": {
+          "mw": 163.12,
+          "ratio_pct": 4.95
+        },
+        "S6": {
+          "mw": 166.73,
+          "ratio_pct": 5.03
+        },
+        "S7": {
+          "mw": 169.27,
+          "ratio_pct": 5.1
+        },
+        "S_MAX": {
+          "mw": 169.27,
+          "ratio_pct": 5.1
+        }
+      },
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": null,
+      "max_radius_km": 10.0
+    },
+    {
+      "name": "삼성전자 기흥캠퍼스 (대형 소비처)",
+      "lon": 127.0842,
+      "lat": 37.2288,
+      "elec_gwh": 2300,
+      "elec_mwh": 2300000,
+      "is_demand_only": true,
+      "elec_note": "공시 역산 — 환경정보공개시스템 사업장 Scope 2 1,055,102 tCO2eq('24) ÷ 0.4594 ≈ 2,300 GWh(구매전력) / 좌표 근사(농서동)",
+      "scenarios": {},
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": null,
+      "max_radius_km": 10.0
+    }
+  ],
+  "policy_map": {
+    "S0": "현행법",
+    "S1a": "농식품부 (진흥기타)",
+    "S1b": "농식품부 (보호구역)",
+    "S2": "농식품부 (시설재배지)",
+    "S3": "농식품부 (진흥구역, 법 개정) ★",
+    "S4": "국토부 (잡종지)",
+    "S5": "지자체·국토부 (경사·토지이용)",
+    "S6": "국방부 (군사완충)",
+    "S7": "환경부·국립공원공단",
+    "S_MAX": "산업부 (광업)"
+  }
+}

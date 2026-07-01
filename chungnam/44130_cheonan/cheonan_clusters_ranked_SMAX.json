@@ -1,0 +1,42 @@
+{
+  "scenario": "SMAX",
+  "n_clusters": 3,
+  "clusters": [
+    {
+      "n": 50971,
+      "area": 33733401.73851627,
+      "ratio": 0.4999934695397958,
+      "mw": 1518.0030782332321,
+      "nearest_complex": "천안백석일반산업단지",
+      "dist_km": 0.35,
+      "demand_gwh": 344.3,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 73.0,
+      "smaa_rank": 1
+    },
+    {
+      "n": 1805,
+      "area": 1471635.893356998,
+      "ratio": 0.4995113722260074,
+      "mw": 66.22361520106492,
+      "nearest_complex": "천안제4일반산업단지",
+      "dist_km": 7.46,
+      "demand_gwh": 416.3,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 0.5,
+      "smaa_rank": 3
+    },
+    {
+      "n": 1651,
+      "area": 1376941.8606487243,
+      "ratio": 0.4996326850881318,
+      "mw": 61.96238372919259,
+      "nearest_complex": "천안제4일반산업단지",
+      "dist_km": 6.46,
+      "demand_gwh": 416.3,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 26.4,
+      "smaa_rank": 2
+    }
+  ]
+}

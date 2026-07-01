@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>RE100 영농형 태양광 산업단지 입지 분석</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+               "Malgun Gothic", sans-serif;
+  background: #f5f5f0;
+  color: #1a1a1a;
+}
+.header {
+  background: linear-gradient(135deg, #1a365d 0%, #2c5aa0 100%);
+  color: white;
+  padding: 24px 32px;
+}
+.header h1 { font-size: 22px; margin-bottom: 6px; }
+.header p { font-size: 13px; opacity: 0.85; line-height: 1.5; }
+.main {
+  display: flex;
+  max-width: 1400px;
+  margin: 20px auto;
+  gap: 20px;
+  padding: 0 20px;
+}
+#map {
+  flex: 1;
+  height: 80vh;
+  min-height: 560px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  z-index: 1;
+}
+.sidebar {
+  width: 320px;
+  flex-shrink: 0;
+}
+.sido-group {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.sido-title {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  color: #374151;
+}
+.sgg-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s;
+}
+.sgg-item:hover { background: #f0f4ff; }
+.sgg-item:last-child { border-bottom: none; }
+.sgg-name { flex: 1; font-weight: 500; }
+.sgg-count {
+  font-size: 11px;
+  color: #888;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.sgg-item .arrow {
+  margin-left: 8px;
+  color: #aaa;
+  font-size: 14px;
+}
+.info-box {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #555;
+}
+.info-box b { color: #1a1a1a; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  margin-right: 4px;
+}
+.badge-chungnam { background: #2c5aa0; }
+.badge-gyeonggi { background: #7c3aed; }
+.overlay-ctl{background:rgba(255,255,255,.96);padding:8px 11px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.3);font-size:12px;line-height:1.9;}
+.overlay-ctl b{display:block;margin-bottom:3px;color:#1a365d;font-size:11px;}
+.overlay-ctl label{display:block;cursor:pointer;white-space:nowrap;}
+.overlay-ctl input{vertical-align:middle;margin-right:5px;}
+.overlay-ctl .ov-scen{margin-top:5px;border-top:1px solid #eee;padding-top:5px;color:#555;}
+.overlay-ctl select{font-size:12px;}
+.map-legend{background:rgba(255,255,255,.95);padding:8px 10px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.3);font-size:11px;line-height:1.7;color:#444;max-width:230px;}
+.map-legend i{display:inline-block;width:11px;height:11px;margin-right:4px;vertical-align:middle;border-radius:2px;}
+.map-legend i.dot{border-radius:50%;}
+.clbox{min-width:235px;}
+.clbox .near{margin-top:6px;font-size:11px;max-height:140px;overflow:auto;}
+.clbox a{display:inline-block;margin-top:7px;font-size:12px;color:#2c5aa0;}
+.sgg-chk{flex-shrink:0;margin-right:10px;width:16px;height:16px;cursor:pointer;}
+.sgg-body{flex:1;cursor:pointer;min-width:0;}
+.sgg-row{display:flex;align-items:center;}
+.sgg-metrics{font-size:11px;color:#2c5aa0;margin-top:3px;}
+.sgg-metrics b{color:#1a365d;}
+.overlay-ctl input[type=number]{width:46px;font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>RE100 영농형 태양광 산업단지 입지 분석</h1>
+  <p>경기도 8개 + 충청남도 6개 시군 &middot; 40개 산업단지 &middot;
+     대형 소비처 13곳(수요 전용, 추정치 포함) &middot;
+     Power Density 0.045 kW/m&sup2; (보수적 추정)<br>
+     사이드바에서 <b>시군을 체크</b>하면 해당 시군의 클러스터(특구 후보) 요약이 지도에 표시됩니다 — 클러스터를 클릭하면 시군 경계와 무관하게 10km 내 산단(타 시군 강조)을 확인할 수 있습니다.
+     우측 상단에서 <b>산단 반경 버퍼</b>·<b>「공공·법인 주도형 특구 후보」</b>를 켜거나, 카드 본문을 클릭해 시군 상세 분석으로 이동할 수 있습니다.</p>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+  <div class="sidebar">
+    <div class="sido-group">
+      <div class="sido-title">
+        <span class="badge badge-chungnam">충남</span> 충청남도 (6개 시군)
+      </div>
+      <div id="list-chungnam"></div>
+    </div>
+    <div class="sido-group">
+      <div class="sido-title">
+        <span class="badge badge-gyeonggi">경기</span> 경기도 (8개 시군)
+      </div>
+      <div id="list-gyeonggi"></div>
+    </div>
+    <div class="info-box">
+      <b>사용 방법</b><br>
+      1. 시군 선택 &rarr; 상세 분석 페이지로 이동<br>
+      2. 산업단지 선택 + 반경 조절<br>
+      3. 정책 변수 체크박스로 잠재량 실시간 확인<br><br>
+      <b>분석 공식</b><br>
+      설비용량 = 면적 &times; 0.045 kW/m&sup2; &divide; 1,000<br>
+      연간발전량 = MW &times; 1,314h (설비이용률 15%)
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var SGGS = [{"name": "당진시", "sido": "충청남", "url": "chungnam/44270_dangjin/dangjin_map.html", "lon": 126.6295, "lat": 36.9617, "cx_count": 3, "code": "44270", "complexes": [{"name": "당진송산2국가산업단지", "lat": 36.987471, "lon": 126.707554}, {"name": "당진일반산업단지", "lat": 36.8893, "lon": 126.6457}, {"name": "석문국가산업단지", "lat": 37.0083, "lon": 126.5352}, {"name": "현대제철 당진제철소 (대형 소비처)", "lat": 36.949, "lon": 126.625, "demand": true}], "dc_count": 1}, {"name": "서산시", "sido": "충청남", "url": "chungnam/44210_seosan/seosan_map.html", "lon": 126.4326, "lat": 36.906, "cx_count": 2, "code": "44210", "complexes": [{"name": "대죽일반산업단지", "lat": 36.9611, "lon": 126.4091}, {"name": "서산테크노밸리", "lat": 36.850986, "lon": 126.45607}, {"name": "한화토탈에너지스 대산공장 (대형 소비처)", "lat": 36.997, "lon": 126.347, "demand": true}, {"name": "HD현대오일뱅크 대산공장 (대형 소비처)", "lat": 36.995, "lon": 126.41, "demand": true}, {"name": "롯데케미칼 대산공장 (대형 소비처)", "lat": 36.998, "lon": 126.367, "demand": true}, {"name": "LG화학 대산공장 (대형 소비처)", "lat": 36.998, "lon": 126.374, "demand": true}], "dc_count": 4}, {"name": "아산시", "sido": "충청남", "url": "chungnam/44200_asan/asan_map.html", "lon": 126.9129, "lat": 36.88, "cx_count": 2, "code": "44200", "complexes": [{"name": "아산국가산업단지", "lat": 36.94, "lon": 126.765}, {"name": "탕정일반산업단지", "lat": 36.819935, "lon": 127.060833}, {"name": "삼성디스플레이 아산캠퍼스 (대형 소비처)", "lat": 36.814, "lon": 127.063, "demand": true}], "dc_count": 1}, {"name": "천안시", "sido": "충청남", "url": "chungnam/44130_cheonan/cheonan_map.html", "lon": 127.1169, "lat": 36.846, "cx_count": 3, "code": "44130", "complexes": [{"name": "천안제2일반산업단지", "lat": 36.8512, "lon": 127.1234}, {"name": "천안제4일반산업단지", "lat": 36.8625, "lon": 127.1158}, {"name": "천안백석일반산업단지", "lat": 36.8351, "lon": 127.1142}, {"name": "삼성디스플레이 천안사업장 (대형 소비처)", "lat": 36.8413, "lon": 127.1173, "demand": true}, {"name": "삼성SDI 천안사업장 (대형 소비처)", "lat": 36.8413, "lon": 127.1198, "demand": true}], "dc_count": 2}, {"name": "예산군", "sido": "충청남", "url": "chungnam/44810_yesan/yesan_map.html", "lon": 126.758, "lat": 36.675, "cx_count": 1, "code": "44810", "complexes": [{"name": "예산일반산업단지", "lat": 36.675, "lon": 126.758}]}, {"name": "홍성군", "sido": "충청남", "url": "chungnam/44800_hongseong/hongseong_map.html", "lon": 126.5303, "lat": 36.6279, "cx_count": 1, "code": "44800", "complexes": [{"name": "홍성일반산업단지", "lat": 36.6279, "lon": 126.5303}]}, {"name": "보령시", "sido": "충청남", "url": "chungnam/44180_boryeong/boryeong_map.html", "lon": 126.58, "lat": 36.33, "cx_count": 8, "code": "44180", "complexes": [{"name": "보령웅천일반산업단지", "lat": 36.2391, "lon": 126.5816}, {"name": "웅천농공단지", "lat": 36.23, "lon": 126.595}, {"name": "웅천석재농공단지", "lat": 36.248, "lon": 126.57}, {"name": "주산농공단지", "lat": 36.2032, "lon": 126.6207}, {"name": "주포농공단지", "lat": 36.4112, "lon": 126.5772}, {"name": "주포제2농공단지", "lat": 36.418, "lon": 126.585}, {"name": "청소농공단지", "lat": 36.4506, "lon": 126.5963}, {"name": "요암농공단지", "lat": 36.3255, "lon": 126.5515}]}, {"name": "화성시", "sido": "경기", "url": "gyeonggi/41590_hwaseong/hwaseong_map.html", "lon": 126.799, "lat": 37.1236, "cx_count": 7, "code": "41590", "complexes": [{"name": "마도일반산업단지", "lat": 37.202, "lon": 126.762}, {"name": "발안일반산업단지", "lat": 37.110229, "lon": 126.842651}, {"name": "장안1일반산업단지", "lat": 37.085, "lon": 126.812}, {"name": "장안2일반산업단지", "lat": 37.092, "lon": 126.801}, {"name": "장안3·4일반산업단지", "lat": 37.105, "lon": 126.795}, {"name": "전곡해양일반산업단지", "lat": 37.186442, "lon": 126.675625}, {"name": "향남제약일반산업단지", "lat": 37.084831, "lon": 126.90505}, {"name": "삼성전자 화성캠퍼스 (대형 소비처)", "lat": 37.2185, "lon": 127.066, "demand": true}], "dc_count": 1}, {"name": "평택시", "sido": "경기", "url": "gyeonggi/41220_pyeongtaek/pyeongtaek_map.html", "lon": 126.9766, "lat": 37.0395, "cx_count": 8, "code": "41220", "complexes": [{"name": "송탄일반산업단지", "lat": 37.034008, "lon": 127.060318}, {"name": "어연·한산일반산업단지", "lat": 37.0535, "lon": 126.976}, {"name": "진위2일반산업단지", "lat": 37.112, "lon": 127.058}, {"name": "진위일반산업단지", "lat": 37.086371, "lon": 127.10156}, {"name": "평택·오성일반산업단지", "lat": 37.03161, "lon": 126.949167}, {"name": "포승2일반산업단지", "lat": 36.978901, "lon": 126.853809}, {"name": "포승(BIX)국가산업단지", "lat": 36.980409, "lon": 126.852951}, {"name": "현곡지방산업단지", "lat": 37.039, "lon": 126.961}, {"name": "삼성전자 평택캠퍼스 (대형 소비처)", "lat": 37.0356, "lon": 127.0602, "demand": true}], "dc_count": 1}, {"name": "용인시", "sido": "경기", "url": "gyeonggi/41463_yongin/yongin_map.html", "lon": 127.319, "lat": 37.1523, "cx_count": 1, "code": "41463", "complexes": [{"name": "원삼반도체클러스터(예정)", "lat": 37.1523, "lon": 127.319}, {"name": "삼성전자 기흥캠퍼스 (대형 소비처)", "lat": 37.2288, "lon": 127.0842, "demand": true}], "dc_count": 1}, {"name": "시흥시·안산시", "sido": "경기", "url": "gyeonggi/41390_siheung_ansan/siheung_ansan_map.html", "lon": 126.7334, "lat": 37.3264, "cx_count": 2, "code": "41390", "complexes": [{"name": "시화MTV(멀티테크노밸리)", "lat": 37.317752, "lon": 126.746349}, {"name": "시화국가산업단지", "lat": 37.335, "lon": 126.7205}]}, {"name": "이천시", "sido": "경기", "url": "gyeonggi/41500_icheon/icheon_map.html", "lon": 127.4202, "lat": 37.264, "cx_count": 2, "code": "41500", "complexes": [{"name": "마장면세일반산업단지", "lat": 37.2776, "lon": 127.3576}, {"name": "부발(SK하이닉스M14/M15/M16)", "lat": 37.250315, "lon": 127.482777}, {"name": "SK하이닉스 이천캠퍼스 (대형 소비처)", "lat": 37.2501, "lon": 127.4807, "demand": true}], "dc_count": 1}, {"name": "파주시", "sido": "경기", "url": "gyeonggi/41480_paju/paju_map.html", "lon": 126.7441, "lat": 37.7949, "cx_count": 3, "code": "41480", "complexes": [{"name": "당동일반산업단지", "lat": 37.866249, "lon": 126.780918}, {"name": "문발일반산업단지", "lat": 37.708338, "lon": 126.685581}, {"name": "파주LCD일반산업단지(월롱)", "lat": 37.810259, "lon": 126.765747}, {"name": "LG디스플레이 파주사업장 (대형 소비처)", "lat": 37.8107, "lon": 126.7672, "demand": true}], "dc_count": 1}, {"name": "김포시", "sido": "경기", "url": "gyeonggi/41570_gimpo/gimpo_map.html", "lon": 126.6112, "lat": 37.6656, "cx_count": 3, "code": "41570", "complexes": [{"name": "양촌일반산업단지", "lat": 37.6571, "lon": 126.6254}, {"name": "통진일반산업단지", "lat": 37.6948, "lon": 126.6031}, {"name": "학운일반산업단지", "lat": 37.645, "lon": 126.605}]}];
+
+var map = L.map('map').setView([37.0, 126.9], 8);
+L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/" +
+  "World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  { attribution: "Tiles &copy; Esri", maxZoom: 19 }
+).addTo(map);
+
+// 회색 타일 방지: 사이드바 목록 렌더 후/리사이즈 시 컨테이너 재측정
+function fixMapSize(){ map.invalidateSize(); }
+window.addEventListener('load', fixMapSize);
+window.addEventListener('resize', fixMapSize);
+setTimeout(fixMapSize, 200); setTimeout(fixMapSize, 800);
+
+// 레이어 그룹: 시군 마커 / 산단 마커(시군 선택 시 동적 표시)
+var sggLayer = L.layerGroup().addTo(map);
+var cxLayer = L.layerGroup().addTo(map);
+
+// 1단계 → 2단계: 시군 줌인 + 그 시군의 산단 마커 표시
+function showComplexes(s) {
+  cxLayer.clearLayers();
+  map.setView([s.lat, s.lon], 11);
+  (s.complexes || []).forEach(function(cx, i) {
+    var marker = L.marker([cx.lat, cx.lon], {
+      icon: L.divIcon({
+        html: '<div style="background:' + (cx.demand ? '#e65100' : '#d32f2f') +
+          ';color:white;padding:4px 10px;' +
+          'border-radius:4px;font-size:12px;font-weight:bold;white-space:nowrap;' +
+          'box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;">' +
+          (cx.demand ? '&#9889; ' : '&#11088; ') + cx.name + '</div>',
+        className: '', iconSize: null, iconAnchor: [0, 0]
+      })
+    });
+    // 산단 마커 클릭 → 해당 산단이 선택된 상태로 _지도.html 진입
+    marker.on('click', function() {
+      window.location.href = s.url + '?complex=' + i;
+    });
+    cxLayer.addLayer(marker);
+  });
+}
+
+// 시군별 마커 (클릭 → 줌인 + 산단 마커)
+SGGS.forEach(function(s) {
+  var color = s.sido.indexOf('충청') >= 0 ? '#2c5aa0' : '#7c3aed';
+  var marker = L.marker([s.lat, s.lon], {
+    icon: L.divIcon({
+      html: '<div style="background:' + color +
+        ';color:white;padding:4px 10px;border-radius:4px;' +
+        'font-size:12px;font-weight:bold;white-space:nowrap;' +
+        'box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;">' +
+        s.name + ' <span style="font-size:10px;opacity:0.8;">' +
+        s.cx_count + '개 산단' +
+        (s.dc_count ? ' +' + s.dc_count + ' 소비처' : '') + '</span></div>',
+      className: '', iconSize: null, iconAnchor: [0, 0]
+    })
+  });
+  marker.on('click', function() {
+    showComplexes(s);
+  });
+  sggLayer.addLayer(marker);
+});
+
+// 사이드바 목록 생성 (클릭 → 줌인 + 산단 마커)
+var listChungnam = document.getElementById('list-chungnam');
+var listGyeonggi = document.getElementById('list-gyeonggi');
+
+var sggCards = {};   // code → { metrics 엘리먼트, chk 엘리먼트 }
+SGGS.forEach(function(s) {
+  var div = document.createElement('div');
+  div.className = 'sgg-item';
+
+  // 좌측 독립 체크박스 = 다중선택(클러스터 표시). 본문 click 과 역할 분리.
+  var chk = document.createElement('input');
+  chk.type = 'checkbox'; chk.className = 'sgg-chk'; chk.title = '클러스터 요약 표시';
+  chk.addEventListener('click', function(e){ e.stopPropagation(); });
+  chk.addEventListener('change', function(){
+    if (chk.checked) selectedSGG.add(s.code); else selectedSGG.delete(s.code);
+    var ovc = document.getElementById('ov-cluster');
+    if (chk.checked && ovc && !ovc.checked){ ovc.checked = true; ovc.dispatchEvent(new Event('change')); }
+    else if (ovc && ovc.checked) renderClusterSummary();
+    var ovb = document.getElementById('ov-buffer');
+    if (ovb && ovb.checked) renderBuffer();
+  });
+
+  var body = document.createElement('div');
+  body.className = 'sgg-body';
+  body.innerHTML =
+    '<div class="sgg-row"><span class="sgg-name">' + s.name + '</span>' +
+    '<span class="sgg-count">' + s.cx_count + '개 산단' +
+    (s.dc_count ? ' +' + s.dc_count + ' 소비처' : '') + '</span>' +
+    '<span class="arrow">&rsaquo;</span></div>' +
+    '<div class="sgg-metrics">클러스터 &hellip;</div>';
+  body.onclick = function() { showComplexes(s); };
+  body.onmouseenter = function() { map.setView([s.lat, s.lon], 11); };
+
+  div.appendChild(chk); div.appendChild(body);
+  sggCards[s.code] = { metrics: body.querySelector('.sgg-metrics'), chk: chk };
+
+  if (s.sido.indexOf('충청') >= 0) listChungnam.appendChild(div);
+  else listGyeonggi.appendChild(div);
+});
+map.invalidateSize();   // 목록 렌더로 높이 변동 → 즉시 재측정
+
+// ═══ 전체 보기: 모든 시군 클러스터 폴리곤 + 전체 산단/소비처 오버레이 ═══
+function sidoColor(sido){ return sido.indexOf('충청') >= 0 ? '#2c5aa0' : '#7c3aed'; }
+var clusterLayer = L.layerGroup();
+var allCxLayer = L.layerGroup();
+var bufferLayer = L.layerGroup();
+
+// 전체 산단/소비처 평탄화 (시군 컨텍스트 포함)
+var ALL_CX = [];
+SGGS.forEach(function(s){ (s.complexes || []).forEach(function(cx, i){
+  ALL_CX.push({ name: cx.name, lat: cx.lat, lon: cx.lon, demand: !!cx.demand, sgg: s.name, url: s.url, idx: i });
+}); });
+
+function haversineKm(lat1, lon1, lat2, lon2){
+  var R = 6371, toR = Math.PI/180;
+  var dLat = (lat2-lat1)*toR, dLon = (lon2-lon1)*toR;
+  var h = Math.sin(dLat/2)*Math.sin(dLat/2)
+        + Math.cos(lat1*toR)*Math.cos(lat2*toR)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+
+function renderAllComplexes(){
+  allCxLayer.clearLayers();
+  ALL_CX.forEach(function(cx){
+    var col = cx.demand ? '#e65100' : '#d32f2f';
+    var m = L.circleMarker([cx.lat, cx.lon], { radius:5, color:'#fff', weight:1.5, fillColor:col, fillOpacity:0.95 });
+    m.bindTooltip((cx.demand ? '⚡ ' : '■ ') + cx.name + ' (' + cx.sgg + ')', { direction:'top' });
+    m.bindPopup('<b>' + cx.name + '</b><br>' + cx.sgg + ' · ' + (cx.demand ? '대형 소비처' : '산업단지') +
+      '<br><a href="' + cx.url + '?complex=' + cx.idx + '">이 산단 상세 →</a>');
+    allCxLayer.addLayer(m);
+  });
+}
+
+// ── 다중선택 상태 + 경량 ranked 클러스터 캐시 ──
+var selectedSGG = new Set();          // 선택된 시군 code (체크박스)
+var CLUSTERS = {};                    // CLUSTERS[scen][code] = clusters[]
+var SGG_BY_CODE = {}; SGGS.forEach(function(s){ SGG_BY_CODE[s.code] = s; });
+
+function curScen(){ var el = document.getElementById('ov-scen'); return el ? el.value : 'S3'; }
+
+// 단일 경량 요약 파일(cluster_summary.json, ~18KB)을 1회 로드.
+// (시군별 ranked json·clusters.db 의 centroid 가 대부분 결측이라, 폴리곤에서 중심점을 뽑아
+//  build_cluster_summary.py 로 만든 전 시군·전 시나리오 통합 파일을 사용.)
+var _cluLoaded = false;
+function loadRanked(scen){
+  if (_cluLoaded) return Promise.resolve(CLUSTERS[scen] || {});
+  return fetch('cluster_summary.json').then(function(r){ return r.json(); })
+    .then(function(j){ CLUSTERS = j; _cluLoaded = true; return CLUSTERS[scen] || {}; })
+    .catch(function(){ _cluLoaded = true; return {}; });
+}
+
+// 시군별 집계: 클러스터 개수 · 총 MW 합 · 평균 개인비율%
+function sggAgg(scen, code){
+  var cl = (CLUSTERS[scen] && CLUSTERS[scen][code]) || [];
+  if (!cl.length) return { n: 0, mw: 0, indiv: null };
+  var mw = 0, rsum = 0;
+  cl.forEach(function(c){ mw += (c.mw || 0); rsum += (c.ratio || 0); });
+  return { n: cl.length, mw: mw, indiv: Math.round(rsum / cl.length * 100) };
+}
+
+// 카드 3지표 갱신(선택 시나리오 기준)
+function refreshCards(){
+  var scen = curScen();
+  SGGS.forEach(function(s){
+    var card = sggCards[s.code]; if (!card) return;
+    if (!CLUSTERS[scen]) { card.metrics.innerHTML = '클러스터 …'; return; }
+    var a = sggAgg(scen, s.code);
+    card.metrics.innerHTML = '클러스터 <b>' + a.n + '개</b> · 총 <b>' +
+      Math.round(a.mw).toLocaleString() + 'MW</b>' +
+      (a.indiv != null ? ' · 평균 개인 <b>' + a.indiv + '%</b>' : '');
+  });
+}
+
+// 클러스터 팝업(ranked): 순위·MW·필지·개인% + 시군 무관 10km 내 산단
+function clusterPopupRanked(c, s){
+  var center = [c.lat, c.lon];
+  var near = ALL_CX.map(function(cx){ return { cx:cx, d:haversineKm(center[0], center[1], cx.lat, cx.lon) }; })
+                   .filter(function(x){ return x.d <= 10; })
+                   .sort(function(a,b){ return a.d - b.d; });
+  var nearH = near.map(function(x){
+    var cross = x.cx.sgg !== s.name;
+    return '<div style="' + (cross ? 'color:#b45309;font-weight:600' : 'color:#555') + '">· ' +
+      x.cx.name + ' (' + x.cx.sgg + (cross ? ' ⟵ 타 시군' : '') + ') ' + x.d.toFixed(1) + 'km' +
+      (x.cx.demand ? ' ⚡' : '') + '</div>';
+  }).join('') || '<div style="color:#888">10km 내 산단 없음</div>';
+  var crossN = near.filter(function(x){ return x.cx.sgg !== s.name; }).length;
+  return '<div class="clbox"><b style="font-size:14px">' + s.name + ' — 특구 후보 #' + (c.smaa_rank || '?') + '</b>' +
+    '<br>설비 ' + Math.round(c.mw || 0).toLocaleString() + 'MW · ' +
+    (c.n != null ? c.n.toLocaleString() : '?') + '필지 · 개인 ' + (c.ratio != null ? Math.round(c.ratio * 100) : '?') + '%' +
+    '<br>최근접 산단: ' + (c.nearest_complex || '-') + ' (' + (c.dist_km != null ? c.dist_km : '?') + 'km) · 수요 ' +
+    (c.demand_gwh != null ? Math.round(c.demand_gwh).toLocaleString() : '?') + 'GWh' +
+    (c.pareto_layer === 1 ? ' <span style="color:#b45309">★Pareto</span>' : '') +
+    '<div class="near"><b>인근 산단 (≤10km · 시군 무관)' + (crossN ? ' — 타 시군 ' + crossN + '곳' : '') + '</b>' + nearH + '</div>' +
+    '<a href="' + s.url + '">이 시군 상세 지도 →</a></div>';
+}
+
+// 선택 시군의 클러스터 점 렌더 (선택 0개 → 지도에 클러스터 없음)
+function renderClusterSummary(){
+  clusterLayer.clearLayers();
+  var scen = curScen();
+  selectedSGG.forEach(function(code){
+    var s = SGG_BY_CODE[code]; if (!s) return;
+    var cl = (CLUSTERS[scen] && CLUSTERS[scen][code]) || [];
+    var color = sidoColor(s.sido);
+    cl.forEach(function(c){
+      var m = L.circleMarker([c.lat, c.lon], {
+        radius: 4 + Math.sqrt(c.mw || 0) / 2,
+        color: c.pareto_layer === 1 ? '#111' : '#fff',
+        weight: c.pareto_layer === 1 ? 2 : 1,
+        fillColor: color, fillOpacity: 0.85
+      });
+      m.bindTooltip(s.name + ' #' + (c.smaa_rank || '?') + ' · ' + Math.round(c.mw || 0) + 'MW', { sticky: true });
+      m.bindPopup(clusterPopupRanked(c, s));
+      clusterLayer.addLayer(m);
+    });
+  });
+}
+
+// 산단 반경 버퍼(기본 off): 선택 시군 있으면 그 시군, 없으면 전체의 complexes 기준
+function renderBuffer(){
+  bufferLayer.clearLayers();
+  var km = parseFloat(document.getElementById('ov-buffer-km').value) || 5;
+  var only = selectedSGG.size ? selectedSGG : null;
+  SGGS.forEach(function(s){
+    if (only && !only.has(s.code)) return;
+    (s.complexes || []).forEach(function(cx){
+      L.circle([cx.lat, cx.lon], { radius: km * 1000, fill: false, weight: 1.5,
+        dashArray: '6 4', color: sidoColor(s.sido) }).addTo(bufferLayer);
+    });
+  });
+}
+
+// 토글 컨트롤
+var overlayCtl = L.control({ position: 'topright' });
+overlayCtl.onAdd = function(){
+  var d = L.DomUtil.create('div', 'overlay-ctl');
+  d.innerHTML =
+    '<b>전체 보기</b>' +
+    '<label><input type="checkbox" id="ov-cluster"> 클러스터(선택 시군)</label>' +
+    '<label><input type="checkbox" id="ov-cx"> 산단·소비처 전체</label>' +
+    '<label><input type="checkbox" id="ov-buffer"> 산단 반경 버퍼</label>' +
+    '<div class="ov-scen">반경 <input type="number" id="ov-buffer-km" value="5" min="0.5" max="20" step="0.5"> km</div>' +
+    '<div class="ov-scen">시나리오 <select id="ov-scen">' +
+      '<option value="S0">현행법</option><option value="S3" selected>특별법</option><option value="SMAX">이론최대</option>' +
+    '</select></div>' +
+    '<label style="margin-top:5px;border-top:1px solid #eee;padding-top:5px"><input type="checkbox" id="ov-lowindiv"> 공공·법인 주도형 특구 후보</label>' +
+    '<div class="ov-scen">개인 ≤ <select id="ov-cap"><option value="10">10%</option><option value="20">20%</option><option value="30" selected>30%</option><option value="50">50%</option></select> ' +
+      '<button id="ov-csv" type="button" style="font-size:11px;border:1px solid #2c5aa0;background:#fff;color:#2c5aa0;border-radius:4px;padding:1px 6px;cursor:pointer">CSV</button></div>';
+  L.DomEvent.disableClickPropagation(d);
+  return d;
+};
+overlayCtl.addTo(map);
+
+// 범례
+var legendCtl = L.control({ position: 'bottomleft' });
+legendCtl.onAdd = function(){
+  var d = L.DomUtil.create('div', 'map-legend');
+  d.innerHTML =
+    '<b>전체 보기 범례</b><br>' +
+    '<i class="dot" style="background:#2c5aa0"></i>충남 클러스터 &nbsp; <i class="dot" style="background:#7c3aed"></i>경기 클러스터 (점크기=MW·검정테=Pareto)<br>' +
+    '<i class="dot" style="background:#d32f2f"></i>산단 &nbsp; <i class="dot" style="background:#e65100"></i>대형 소비처<br>' +
+    '<span style="color:#b45309;font-weight:600">주황 글씨</span> = 타 시군 산단 근접(클릭 시)<br>' +
+    '<b>공공·법인 주도형 특구 후보</b> (개인소유%): ' +
+    '<i class="dot" style="background:#15803d"></i>0 ' +
+    '<i class="dot" style="background:#4ade80"></i>10 ' +
+    '<i class="dot" style="background:#facc15"></i>20 ' +
+    '<i class="dot" style="background:#fb923c"></i>30 ' +
+    '<i class="dot" style="background:#ef4444"></i>50 · 점크기=MW · 검정테=Pareto';
+  return d;
+};
+legendCtl.addTo(map);
+
+document.getElementById('ov-cluster').addEventListener('change', function(e){
+  if (e.target.checked){ loadRanked(curScen()).then(function(){ renderClusterSummary(); }); map.addLayer(clusterLayer); }
+  else map.removeLayer(clusterLayer);
+});
+document.getElementById('ov-cx').addEventListener('change', function(e){
+  if (e.target.checked){ renderAllComplexes(); map.addLayer(allCxLayer); }
+  else map.removeLayer(allCxLayer);
+});
+document.getElementById('ov-scen').addEventListener('change', function(e){
+  loadRanked(e.target.value).then(function(){
+    refreshCards();
+    if (document.getElementById('ov-cluster').checked) renderClusterSummary();
+    if (document.getElementById('ov-buffer').checked) renderBuffer();
+  });
+});
+document.getElementById('ov-buffer').addEventListener('change', function(e){
+  if (e.target.checked){ renderBuffer(); map.addLayer(bufferLayer); }
+  else map.removeLayer(bufferLayer);
+});
+document.getElementById('ov-buffer-km').addEventListener('change', function(){
+  if (document.getElementById('ov-buffer').checked) renderBuffer();
+});
+
+// ═══ 공공·법인 주도형 특구 후보 (개인소유 비율 낮은 ≥50MW 구역, 충남) ═══
+var lowindivLayer = L.layerGroup();
+var LOWINDIV = null;   // 통합 후보 캐시
+
+function indColor(pct){
+  if (pct <= 0) return '#15803d';      // 0% 진초록 (개인 동의 불필요)
+  if (pct <= 10) return '#4ade80';     // ≤10% 연초록
+  if (pct <= 20) return '#facc15';     // ≤20% 노랑
+  if (pct <= 30) return '#fb923c';     // ≤30% 주황
+  return '#ef4444';                    // ≤50% 빨강
+}
+
+function renderLowindiv(cap){
+  lowindivLayer.clearLayers();
+  if (!LOWINDIV) return;
+  LOWINDIV.filter(function(c){ return c.ind_pct <= cap; }).forEach(function(c){
+    var col = indColor(c.ind_pct);
+    var m = L.circleMarker([c.lat, c.lon], {
+      radius: 4 + Math.sqrt(c.mw)/2, color: c.pareto ? '#111' : '#fff',
+      weight: c.pareto ? 2 : 1, fillColor: col, fillOpacity: 0.9
+    });
+    var consent = c.ind_pct <= 0 ? '<b style="color:#15803d">개인 동의 불필요</b>'
+      : '동의 개인필지 <b>' + c.n_ind + '개</b>';
+    m.bindTooltip(c.sgg + ' · 개인 ' + c.ind_pct + '% · ' + Math.round(c.mw) + 'MW', {direction:'top'});
+    m.bindPopup('<div style="min-width:210px"><b style="font-size:13px">' + c.sgg +
+      ' <span style="font-weight:400;color:#777;font-size:11px">(' + (c.sido || '') + ')</span> — 공공·법인 주도형 특구 후보 #' + c.rank + '</b>' +
+      (c.pareto ? ' <span style="color:#b45309">★Pareto</span>' : '') +
+      '<br>개인소유 <b style="color:' + col + '">' + c.ind_pct + '%</b>' +
+      (c.unknown_pct > 0 ? ' (불명 ' + c.unknown_pct + '%)' : '') +
+      (c.data_warn ? ' <span style="color:#b91c1c;font-size:11px">⚠ 소유정보 결측 많음</span>' : '') +
+      '<br>' + consent + ' / 총 ' + c.n_parcels + '필지' +
+      '<br>설비 <b>' + Math.round(c.mw) + 'MW</b> · ' + Math.round(c.area_ha) + 'ha · 반경 ~' + c.radius_m + 'm' +
+      '<br>최근접 산단: ' + c.complex +
+      '<br><a href="' + c.url + '">이 시군 상세 지도 →</a></div>');
+    lowindivLayer.addLayer(m);
+  });
+}
+
+function lowindivCSV(){
+  if (!LOWINDIV) return;
+  var cap = parseFloat(document.getElementById('ov-cap').value);
+  var rows = LOWINDIV.filter(function(c){ return c.ind_pct <= cap; });
+  var hdr = ['시도','시군','후보순위','개인소유_pct','소유불명_pct','데이터경고','동의_개인필지수','총필지수','설비MW','면적ha','반경m','최근접산단','Pareto','lat','lon'];
+  var csv = '﻿' + hdr.join(',') + '\n' + rows.map(function(c){
+    return [c.sido||'', c.sgg, c.rank, c.ind_pct, c.unknown_pct, c.data_warn?'결측다':'', c.n_ind, c.n_parcels, c.mw, c.area_ha, c.radius_m, c.complex, c.pareto?'Y':'', c.lat, c.lon]
+      .map(function(x){ return '"' + String(x).replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = '공공법인주도형_특구후보_경기충남_개인' + cap + '이하.csv';
+  a.click();
+}
+
+function ensureLowindiv(then){
+  if (LOWINDIV) { then(); return; }
+  fetch('lowindiv_candidates_S3.json').then(function(r){ return r.json(); })
+    .then(function(d){ LOWINDIV = d; then(); })
+    .catch(function(){ alert('공공·법인 주도형 후보 데이터 로드 실패 (lowindiv_candidates_S3.json)'); });
+}
+
+document.getElementById('ov-lowindiv').addEventListener('change', function(e){
+  if (e.target.checked) ensureLowindiv(function(){
+    renderLowindiv(parseFloat(document.getElementById('ov-cap').value));
+    map.addLayer(lowindivLayer);
+  });
+  else map.removeLayer(lowindivLayer);
+});
+document.getElementById('ov-cap').addEventListener('change', function(e){
+  if (document.getElementById('ov-lowindiv').checked) renderLowindiv(parseFloat(e.target.value));
+});
+document.getElementById('ov-csv').addEventListener('click', function(){
+  ensureLowindiv(lowindivCSV);
+});
+
+// 딥링크: ?sgg=<code> (=_지도.html 돌아가기) → 해당 시군 줌인 + 산단 마커
+var _hadSgg = (function initFromQuery() {
+  var code = new URLSearchParams(location.search).get('sgg');
+  if (!code) return false;
+  var s = SGGS.find(function(x) { return x.code === code; });
+  if (s) { showComplexes(s); return true; }
+  return false;
+})();
+
+// ?sgg 없이 진입: 산단·소비처만 자동 표시. 클러스터는 시군을 체크해야 나타남(선택 0개=클러스터 0개).
+if (!_hadSgg) {
+  var cxEl = document.getElementById('ov-cx');
+  cxEl.checked = true;
+  cxEl.dispatchEvent(new Event('change'));
+}
+// 요약 카드의 3지표(개수·총MW·평균 개인%)용 ranked(S3) 선로드 — 28KB, 항상
+loadRanked('S3').then(refreshCards);
+</script>
+</body>
+</html>

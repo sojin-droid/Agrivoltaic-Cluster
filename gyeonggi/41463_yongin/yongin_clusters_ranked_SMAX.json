@@ -1,0 +1,66 @@
+{
+  "scenario": "SMAX",
+  "n_clusters": 5,
+  "clusters": [
+    {
+      "n": 37038,
+      "area": 48930888.11832688,
+      "ratio": 0.49985777432227985,
+      "mw": 2201.8899653247095,
+      "nearest_complex": "원삼반도체클러스터(예정)",
+      "dist_km": 5.29,
+      "demand_gwh": 4362.5,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 100.0,
+      "smaa_rank": 1
+    },
+    {
+      "n": 7778,
+      "area": 11585043.51027355,
+      "ratio": 0.4274698206953915,
+      "mw": 521.3269579623097,
+      "nearest_complex": "원삼반도체클러스터(예정)",
+      "dist_km": 9.31,
+      "demand_gwh": 4362.5,
+      "pareto_layer": 2,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 2
+    },
+    {
+      "n": 3743,
+      "area": 4623563.011381673,
+      "ratio": 0.44701989992634034,
+      "mw": 208.06033551217524,
+      "nearest_complex": "원삼반도체클러스터(예정)",
+      "dist_km": 9.45,
+      "demand_gwh": 4362.5,
+      "pareto_layer": 3,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 4
+    },
+    {
+      "n": 2780,
+      "area": 2059000.4325341927,
+      "ratio": 0.4988193807466808,
+      "mw": 92.65501946403866,
+      "nearest_complex": "원삼반도체클러스터(예정)",
+      "dist_km": 9.39,
+      "demand_gwh": 4362.5,
+      "pareto_layer": 3,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 5
+    },
+    {
+      "n": 1667,
+      "area": 2024511.0066884048,
+      "ratio": 0.4522042182945304,
+      "mw": 91.10299530097822,
+      "nearest_complex": "원삼반도체클러스터(예정)",
+      "dist_km": 8.84,
+      "demand_gwh": 4362.5,
+      "pareto_layer": 2,
+      "smaa_rank1_pct": 0.0,
+      "smaa_rank": 3
+    }
+  ]
+}

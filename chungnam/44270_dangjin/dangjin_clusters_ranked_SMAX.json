@@ -1,0 +1,86 @@
+{
+  "scenario": "SMAX",
+  "n_clusters": 4,
+  "clusters": [
+    {
+      "n": 4670,
+      "area": 15119120.338958278,
+      "indiv_area": 7558915.678536403,
+      "ratio": 0.4999573724576373,
+      "mw": 680.3604152531225,
+      "lon": 126.50437612130285,
+      "lat": 37.01765842834939,
+      "nearest_complex": "석문국가산업단지",
+      "dist_km": 2.93,
+      "demand_gwh": 7126.6,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 100.0,
+      "objectives": {
+        "scale_mw": 680.4,
+        "proximity_km": 2.93,
+        "demand_gwh": 7126.6
+      },
+      "smaa_rank": 1
+    },
+    {
+      "n": 8622,
+      "area": 13709170.400465997,
+      "indiv_area": 6854520.167878626,
+      "ratio": 0.49999525628812885,
+      "mw": 616.9126680209698,
+      "lon": 126.59996851565792,
+      "lat": 36.968325471257764,
+      "nearest_complex": "현대제철 당진제철소 (대형 소비처)",
+      "dist_km": 3.09,
+      "demand_gwh": 1710,
+      "pareto_layer": 2,
+      "smaa_rank1_pct": 0.0,
+      "objectives": {
+        "scale_mw": 616.9,
+        "proximity_km": 3.09,
+        "demand_gwh": 1710
+      },
+      "smaa_rank": 2
+    },
+    {
+      "n": 5611,
+      "area": 5256993.772172636,
+      "indiv_area": 2628459.183718275,
+      "ratio": 0.49999282815052154,
+      "mw": 236.56471974776863,
+      "lon": 126.69194057790449,
+      "lat": 36.9285081800122,
+      "nearest_complex": "당진일반산업단지",
+      "dist_km": 5.99,
+      "demand_gwh": 388.9,
+      "pareto_layer": 3,
+      "smaa_rank1_pct": 0.0,
+      "objectives": {
+        "scale_mw": 236.6,
+        "proximity_km": 5.99,
+        "demand_gwh": 388.9
+      },
+      "smaa_rank": 4
+    },
+    {
+      "n": 538,
+      "area": 1198983.5453809574,
+      "indiv_area": 598588.6382126317,
+      "ratio": 0.49924674989800627,
+      "mw": 53.954259542143085,
+      "lon": 126.47281728450756,
+      "lat": 36.9563538150081,
+      "nearest_complex": "석문국가산업단지",
+      "dist_km": 8.0,
+      "demand_gwh": 7126.6,
+      "pareto_layer": 2,
+      "smaa_rank1_pct": 0.0,
+      "objectives": {
+        "scale_mw": 54.0,
+        "proximity_km": 8.0,
+        "demand_gwh": 7126.6
+      },
+      "smaa_rank": 3
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+# 무거운 원본 필지(geojson)는 GitHub에 올리지 않음 — Supabase(PostGIS)로 이관
+*_parcels.geojson
+
+# 점(point) 빌드 산출물 — build_points.py 로 재생성(로컬 전용, 미커밋)
+*_points.json
+
+# 비밀키 (KEPCO 등)
+.env
+
+# Claude Code 로컬 세션 설정(머신별, 공유 대상 아님)
+.claude/settings.local.json
+.claude/*.lock
+
+# 로컬 DB/캐시
+cluster_db/*.db
+cluster_db/*.db-journal
+.DS_Store
+
+# 배포 중간 산출물(대용량 CSV 등)
+deploy/*.csv
+deploy/backup/
+
+# 동-여유풀 파이프라인: 원본 캐시·중간 산출물(재실행으로 재생성). dong_pool.*/sanity_check_log는 커밋 대상
+addr_lidong_raw/*.json
+cache/beopjeongdong_raw.txt
+scripts/dong_list.csv
+dl_dong_index.csv

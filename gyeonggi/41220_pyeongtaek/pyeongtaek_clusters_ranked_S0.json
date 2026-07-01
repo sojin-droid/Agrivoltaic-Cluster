@@ -1,0 +1,42 @@
+{
+  "scenario": "S0",
+  "n_clusters": 3,
+  "clusters": [
+    {
+      "n": 4420,
+      "area": 8828637.510606986,
+      "ratio": 0.08331247476198429,
+      "mw": 397.28868797731434,
+      "nearest_complex": "평택·오성일반산업단지",
+      "dist_km": 8.45,
+      "demand_gwh": 173.4,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 26.2,
+      "smaa_rank": 2
+    },
+    {
+      "n": 3089,
+      "area": 2373404.9364962294,
+      "ratio": 0.49991288770308295,
+      "mw": 106.80322214233031,
+      "nearest_complex": "어연·한산일반산업단지",
+      "dist_km": 2.13,
+      "demand_gwh": 278.6,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 50.4,
+      "smaa_rank": 1
+    },
+    {
+      "n": 2095,
+      "area": 1915724.6944189868,
+      "ratio": 0.14737036855876526,
+      "mw": 86.2076112488544,
+      "nearest_complex": "진위2일반산업단지",
+      "dist_km": 5.56,
+      "demand_gwh": 320.6,
+      "pareto_layer": 1,
+      "smaa_rank1_pct": 23.3,
+      "smaa_rank": 3
+    }
+  ]
+}

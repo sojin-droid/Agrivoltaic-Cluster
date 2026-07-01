@@ -1,0 +1,466 @@
+{
+  "sgg_name": "보령",
+  "sgg_code": "44180",
+  "complexes": [
+    {
+      "name": "보령웅천일반산업단지",
+      "lon": 126.5816,
+      "lat": 36.2391,
+      "elec_gwh": 126.0,
+      "elec_mwh": 126012.6,
+      "area_ha": 68.5,
+      "peak_demand_mw": 23.97,
+      "intensity_mw_per_ha": 0.35,
+      "scenarios": {
+        "S0": {
+          "mw": 68.65,
+          "ratio_pct": 71.59
+        },
+        "S1a": {
+          "mw": 68.65,
+          "ratio_pct": 71.59
+        },
+        "S1b": {
+          "mw": 160.84,
+          "ratio_pct": 167.72
+        },
+        "S2": {
+          "mw": 162.16,
+          "ratio_pct": 169.09
+        },
+        "S3": {
+          "mw": 175.96,
+          "ratio_pct": 183.48
+        },
+        "S4": {
+          "mw": 190.41,
+          "ratio_pct": 198.55
+        },
+        "S5": {
+          "mw": 190.41,
+          "ratio_pct": 198.55
+        },
+        "S6": {
+          "mw": 190.41,
+          "ratio_pct": 198.55
+        },
+        "S7": {
+          "mw": 190.41,
+          "ratio_pct": 198.55
+        },
+        "S_MAX": {
+          "mw": 190.41,
+          "ratio_pct": 198.55
+        }
+      },
+      "min_radius_S0_km": null,
+      "min_radius_S3_km": 4.0,
+      "max_radius_km": 10.0,
+      "elec_note": "면적 685,322㎡('21 준공, 한국일보/현진이노베이션) → 68.5ha. Peak=면적×0.35(일반제조, KICOX 강도) 추정. 좌표 근사(웅천읍 중심)"
+    },
+    {
+      "name": "웅천농공단지",
+      "lon": 126.595,
+      "lat": 36.23,
+      "elec_gwh": 12.6,
+      "elec_mwh": 12614.4,
+      "area_ha": 12.0,
+      "peak_demand_mw": 2.4,
+      "intensity_mw_per_ha": 0.2,
+      "scenarios": {
+        "S0": {
+          "mw": 99.95,
+          "ratio_pct": 1041.1
+        },
+        "S1a": {
+          "mw": 99.95,
+          "ratio_pct": 1041.1
+        },
+        "S1b": {
+          "mw": 375.47,
+          "ratio_pct": 3911.18
+        },
+        "S2": {
+          "mw": 380.64,
+          "ratio_pct": 3965.04
+        },
+        "S3": {
+          "mw": 391.56,
+          "ratio_pct": 4078.7
+        },
+        "S4": {
+          "mw": 391.92,
+          "ratio_pct": 4082.51
+        },
+        "S5": {
+          "mw": 391.92,
+          "ratio_pct": 4082.51
+        },
+        "S6": {
+          "mw": 391.92,
+          "ratio_pct": 4082.51
+        },
+        "S7": {
+          "mw": 391.92,
+          "ratio_pct": 4082.51
+        },
+        "S_MAX": {
+          "mw": 391.92,
+          "ratio_pct": 4082.51
+        }
+      },
+      "min_radius_S0_km": 1.0,
+      "min_radius_S3_km": 0.5,
+      "max_radius_km": 10.0,
+      "elec_note": "농공단지. 면적 추정 12ha. Peak=면적×0.2(경공업 강도) 추정. 좌표 근사(웅천읍). ※실측 데이터 확보 필요"
+    },
+    {
+      "name": "웅천석재농공단지",
+      "lon": 126.57,
+      "lat": 36.248,
+      "elec_gwh": 7.4,
+      "elec_mwh": 7358.4,
+      "area_ha": 7.0,
+      "peak_demand_mw": 1.4,
+      "intensity_mw_per_ha": 0.2,
+      "scenarios": {
+        "S0": {
+          "mw": 155.38,
+          "ratio_pct": 2774.57
+        },
+        "S1a": {
+          "mw": 155.38,
+          "ratio_pct": 2774.57
+        },
+        "S1b": {
+          "mw": 479.76,
+          "ratio_pct": 8567.09
+        },
+        "S2": {
+          "mw": 485.27,
+          "ratio_pct": 8665.47
+        },
+        "S3": {
+          "mw": 487.36,
+          "ratio_pct": 8702.88
+        },
+        "S4": {
+          "mw": 489.31,
+          "ratio_pct": 8737.61
+        },
+        "S5": {
+          "mw": 489.31,
+          "ratio_pct": 8737.61
+        },
+        "S6": {
+          "mw": 489.31,
+          "ratio_pct": 8737.61
+        },
+        "S7": {
+          "mw": 489.31,
+          "ratio_pct": 8737.61
+        },
+        "S_MAX": {
+          "mw": 489.31,
+          "ratio_pct": 8737.61
+        }
+      },
+      "min_radius_S0_km": 1.0,
+      "min_radius_S3_km": 0.5,
+      "max_radius_km": 10.0,
+      "elec_note": "석재농공단지. 면적 추정 7ha. Peak=면적×0.2 추정. 좌표 근사(웅천읍). ※실측 필요"
+    },
+    {
+      "name": "주산농공단지",
+      "lon": 126.6207,
+      "lat": 36.2032,
+      "elec_gwh": 10.5,
+      "elec_mwh": 10512.0,
+      "area_ha": 10.0,
+      "peak_demand_mw": 2.0,
+      "intensity_mw_per_ha": 0.2,
+      "scenarios": {
+        "S0": {
+          "mw": 191.93,
+          "ratio_pct": 2399.12
+        },
+        "S1a": {
+          "mw": 191.93,
+          "ratio_pct": 2399.12
+        },
+        "S1b": {
+          "mw": 528.97,
+          "ratio_pct": 6612.1
+        },
+        "S2": {
+          "mw": 545.67,
+          "ratio_pct": 6820.88
+        },
+        "S3": {
+          "mw": 625.59,
+          "ratio_pct": 7819.85
+        },
+        "S4": {
+          "mw": 626.13,
+          "ratio_pct": 7826.59
+        },
+        "S5": {
+          "mw": 626.13,
+          "ratio_pct": 7826.59
+        },
+        "S6": {
+          "mw": 626.13,
+          "ratio_pct": 7826.59
+        },
+        "S7": {
+          "mw": 626.13,
+          "ratio_pct": 7826.59
+        },
+        "S_MAX": {
+          "mw": 626.13,
+          "ratio_pct": 7826.59
+        }
+      },
+      "min_radius_S0_km": 1.0,
+      "min_radius_S3_km": 0.5,
+      "max_radius_km": 10.0,
+      "elec_note": "농공단지. 면적 추정 10ha. Peak=면적×0.2 추정. 좌표 근사(주산면). ※실측 필요"
+    },
+    {
+      "name": "주포농공단지",
+      "lon": 126.5772,
+      "lat": 36.4112,
+      "elec_gwh": 17.3,
+      "elec_mwh": 17344.8,
+      "area_ha": 16.5,
+      "peak_demand_mw": 3.3,
+      "intensity_mw_per_ha": 0.2,
+      "scenarios": {
+        "S0": {
+          "mw": 278.7,
+          "ratio_pct": 2111.35
+        },
+        "S1a": {
+          "mw": 278.7,
+          "ratio_pct": 2111.35
+        },
+        "S1b": {
+          "mw": 642.93,
+          "ratio_pct": 4870.67
+        },
+        "S2": {
+          "mw": 653.13,
+          "ratio_pct": 4947.94
+        },
+        "S3": {
+          "mw": 709.96,
+          "ratio_pct": 5378.52
+        },
+        "S4": {
+          "mw": 712.68,
+          "ratio_pct": 5399.1
+        },
+        "S5": {
+          "mw": 712.68,
+          "ratio_pct": 5399.1
+        },
+        "S6": {
+          "mw": 712.68,
+          "ratio_pct": 5399.1
+        },
+        "S7": {
+          "mw": 712.68,
+          "ratio_pct": 5399.1
+        },
+        "S_MAX": {
+          "mw": 712.68,
+          "ratio_pct": 5399.1
+        }
+      },
+      "min_radius_S0_km": 1.0,
+      "min_radius_S3_km": 0.5,
+      "max_radius_km": 10.0,
+      "elec_note": "면적 165천㎡(16.5ha, 주포면 관산리). Peak=면적×0.2 추정. 좌표 근사(주포면)"
+    },
+    {
+      "name": "주포제2농공단지",
+      "lon": 126.585,
+      "lat": 36.418,
+      "elec_gwh": 15.0,
+      "elec_mwh": 15032.2,
+      "area_ha": 14.3,
+      "peak_demand_mw": 2.86,
+      "intensity_mw_per_ha": 0.2,
+      "scenarios": {
+        "S0": {
+          "mw": 144.44,
+          "ratio_pct": 1262.57
+        },
+        "S1a": {
+          "mw": 144.44,
+          "ratio_pct": 1262.57
+        },
+        "S1b": {
+          "mw": 407.97,
+          "ratio_pct": 3566.14
+        },
+        "S2": {
+          "mw": 414.25,
+          "ratio_pct": 3621.05
+        },
+        "S3": {
+          "mw": 437.57,
+          "ratio_pct": 3824.87
+        },
+        "S4": {
+          "mw": 437.83,
+          "ratio_pct": 3827.18
+        },
+        "S5": {
+          "mw": 437.98,
+          "ratio_pct": 3828.47
+        },
+        "S6": {
+          "mw": 437.98,
+          "ratio_pct": 3828.47
+        },
+        "S7": {
+          "mw": 437.98,
+          "ratio_pct": 3828.47
+        },
+        "S_MAX": {
+          "mw": 437.98,
+          "ratio_pct": 3828.47
+        }
+      },
+      "min_radius_S0_km": 1.0,
+      "min_radius_S3_km": 0.5,
+      "max_radius_km": 10.0,
+      "elec_note": "면적 143천㎡(14.3ha, 주포면 관산리). Peak=면적×0.2 추정. 좌표 근사(주포면)"
+    },
+    {
+      "name": "청소농공단지",
+      "lon": 126.5963,
+      "lat": 36.4506,
+      "elec_gwh": 15.3,
+      "elec_mwh": 15347.5,
+      "area_ha": 14.6,
+      "peak_demand_mw": 2.92,
+      "intensity_mw_per_ha": 0.2,
+      "scenarios": {
+        "S0": {
+          "mw": 379.98,
+          "ratio_pct": 3253.27
+        },
+        "S1a": {
+          "mw": 379.98,
+          "ratio_pct": 3253.27
+        },
+        "S1b": {
+          "mw": 963.04,
+          "ratio_pct": 8245.19
+        },
+        "S2": {
+          "mw": 988.42,
+          "ratio_pct": 8462.49
+        },
+        "S3": {
+          "mw": 1152.56,
+          "ratio_pct": 9867.77
+        },
+        "S4": {
+          "mw": 1157.32,
+          "ratio_pct": 9908.59
+        },
+        "S5": {
+          "mw": 1157.32,
+          "ratio_pct": 9908.59
+        },
+        "S6": {
+          "mw": 1157.32,
+          "ratio_pct": 9908.59
+        },
+        "S7": {
+          "mw": 1157.32,
+          "ratio_pct": 9908.59
+        },
+        "S_MAX": {
+          "mw": 1157.32,
+          "ratio_pct": 9908.59
+        }
+      },
+      "min_radius_S0_km": 1.0,
+      "min_radius_S3_km": 0.5,
+      "max_radius_km": 10.0,
+      "elec_note": "면적 146천㎡(14.6ha, 청소면 장곡리). Peak=면적×0.2 추정. 좌표 근사(청소면)"
+    },
+    {
+      "name": "요암농공단지",
+      "lon": 126.5515,
+      "lat": 36.3255,
+      "elec_gwh": 10.7,
+      "elec_mwh": 10722.2,
+      "area_ha": 10.2,
+      "peak_demand_mw": 2.04,
+      "intensity_mw_per_ha": 0.2,
+      "scenarios": {
+        "S0": {
+          "mw": 432.23,
+          "ratio_pct": 5296.93
+        },
+        "S1a": {
+          "mw": 432.23,
+          "ratio_pct": 5296.93
+        },
+        "S1b": {
+          "mw": 1269.12,
+          "ratio_pct": 15552.94
+        },
+        "S2": {
+          "mw": 1278.65,
+          "ratio_pct": 15669.74
+        },
+        "S3": {
+          "mw": 1315.15,
+          "ratio_pct": 16117.01
+        },
+        "S4": {
+          "mw": 1317.04,
+          "ratio_pct": 16140.22
+        },
+        "S5": {
+          "mw": 1317.04,
+          "ratio_pct": 16140.22
+        },
+        "S6": {
+          "mw": 1317.04,
+          "ratio_pct": 16140.22
+        },
+        "S7": {
+          "mw": 1317.04,
+          "ratio_pct": 16140.22
+        },
+        "S_MAX": {
+          "mw": 1317.04,
+          "ratio_pct": 16140.22
+        }
+      },
+      "min_radius_S0_km": 1.0,
+      "min_radius_S3_km": 0.5,
+      "max_radius_km": 10.0,
+      "elec_note": "면적 102천㎡(10.2ha, 요암동). Peak=면적×0.2 추정. 좌표 근사(요암동)"
+    }
+  ],
+  "policy_map": {
+    "S0": "현행법",
+    "S1a": "농식품부 (진흥기타)",
+    "S1b": "농식품부 (보호구역)",
+    "S2": "농식품부 (시설재배지)",
+    "S3": "농식품부 (진흥구역, 법 개정) ★",
+    "S4": "국토부 (잡종지)",
+    "S5": "지자체·국토부 (경사·토지이용)",
+    "S6": "국방부 (군사완충)",
+    "S7": "환경부·국립공원공단",
+    "S_MAX": "산업부 (광업)"
+  }
+}

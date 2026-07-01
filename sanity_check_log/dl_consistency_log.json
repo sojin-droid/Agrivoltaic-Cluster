@@ -1,0 +1,5 @@
+{
+  "note": "같은 dl_id가 여러 동에 걸쳐 나타나면서 vol1/vol2/vol3 값이 동마다 다르게 관측됨. 실시간 여유용량 데이터라 호출 시점차로 변동했을 수도 있고, dl_id 충돌(다른 물리 DL이 같은 substCd:dlCd를 우연히 공유)일 수도 있음. 원인 분석은 별도 스텝 — 여기서는 경고만.",
+  "inconsistent_dl_count": 0,
+  "details": {}
+}

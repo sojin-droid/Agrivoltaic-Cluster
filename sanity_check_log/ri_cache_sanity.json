@@ -1,0 +1,98 @@
+[
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "운산리",
+    "status": "OK",
+    "cached_dls": [
+      "당찬",
+      "신석",
+      "운산",
+      "합당"
+    ]
+  },
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "석우리",
+    "status": "OK",
+    "cached_dls": [
+      "농공",
+      "당찬",
+      "두견",
+      "몽곡",
+      "석우",
+      "소소",
+      "신석",
+      "신소",
+      "운산",
+      "율사",
+      "인당",
+      "인파",
+      "합산#1"
+    ]
+  },
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "소소리",
+    "status": "OK",
+    "cached_dls": [
+      "당찬",
+      "신석",
+      "운산",
+      "합산#1",
+      "합산#2"
+    ]
+  },
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "신석리",
+    "status": "OK",
+    "cached_dls": [
+      "신석",
+      "신암",
+      "우강",
+      "합당"
+    ]
+  },
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "성동리",
+    "status": "OK",
+    "cached_dls": [
+      "신석",
+      "합당"
+    ]
+  },
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "도곡리",
+    "status": "OK",
+    "cached_dls": [
+      "농공",
+      "두견",
+      "율사"
+    ]
+  },
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "옥금리",
+    "status": "OK",
+    "cached_dls": [
+      "우강",
+      "합당"
+    ]
+  },
+  {
+    "cache_file": "cache/ri_probe_hapdeok_20260701.json",
+    "target": "합덕읍 (당진)",
+    "ri_name": "몽곡리",
+    "status": "NULL_IN_CACHE",
+    "cached_dls": null
+  }
+]
