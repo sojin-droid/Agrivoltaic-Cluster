@@ -27,9 +27,10 @@ scripts/dong_list.csv
 dl_dong_index.csv
 *_dong_pool.json
 
-# 특구 후보 클러스터링(build_candidate_clusters.py) — points.json/dong_pool.json 재생성물, 커밋 대상 아님
-# 시나리오별(S0/S3/SMAX) 3세트로 분리 저장
-*_candidate_clusters_*.json
+# 특구 후보 클러스터링(build_candidate_clusters.py) — 시나리오별(S0/S3/SMAX) 3세트.
+# *_candidate_clusters_*.json(members 제외 경량본)은 뷰어가 직접 로드하는 런타임
+# 데이터라 커밋 대상. members(필지 PNU, 용량의 94.8% 차지)는 뷰어 미사용이라 gitignore.
+*_candidate_members_*.json
 *_candidate_dong_summary_*.json
 
 # 읍면동 경계(fetch_dong_boundaries.py) 원본 캐시·중간 통합본 — 재호출로 재생성 가능.

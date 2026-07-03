@@ -47,11 +47,14 @@ post-clustering 참고지표(grid_ok/grid_margin_kw)로만 남긴다.
 scen만 바뀐다.
 
 산출(전부 gitignore 대상 build artifact, 시나리오별 3세트):
-  <시군>_candidate_clusters_{scen}.json — [{members:[pnu,...], hull:[[lon,lat],...], n,
+  <시군>_candidate_clusters_{scen}.json — [{cluster_id, hull:[[lon,lat],...], n,
     indiv_ratio, total_kw, total_mw, annual_gwh, dongs:[code,...],
     grid_ok(bool|null), grid_margin_kw, usable_mw, pool_incomplete,
-    split_method("none"|"region_grow"), isolated}, ...]
+    split_method("none"|"region_grow"), isolated}, ...]  — 뷰어용 경량본,
+    members 없음(members가 파일 용량의 94.8% 차지, 2026-07-04 확인).
     (필터 없이 전체 클러스터 — 대형 클러스터는 분할된 조각들로 대체됨)
+  <시군>_candidate_members_{scen}.json — {cluster_id: [pnu,...]} — 뷰어 미사용,
+    특구 확정 시 필지 명세 조회용.
   <시군>_candidate_dong_summary_{scen}.json — {dong_code: {dong_name, pool_kw,
     demand_kw, n_clusters, capped}}  (demand_kw = 그 동을 걸치는 모든
     클러스터/조각의 total_kw 합 — 위와 동일한 비-독점 가정)
@@ -458,9 +461,23 @@ def run_scenario(scen):
         all_clusters_by_city[pfx] = final_clusters
         all_ratios.extend(c["indiv_ratio"] for c in final_clusters)
 
+        # cluster_id 부여(0부터, 현재 정렬 순서 그대로 — 결정적) 후 members 분리.
+        # 뷰어는 경량본(members 없음)만 쓰고, members는 특구 확정 시 필지 명세용
+        # 별도 파일로 뺀다(평택 S3 기준 members가 파일 용량의 94.8% 차지, 2026-07-04 확인).
+        members_by_id = {}
+        light_clusters = []
+        for i, c in enumerate(final_clusters):
+            c["cluster_id"] = i
+            members_by_id[i] = c["members"]
+            light_clusters.append({k: v for k, v in c.items() if k != "members"})
+
         out_clusters_path = os.path.join(folder, f"{pfx}_candidate_clusters_{scen}.json")
         with open(out_clusters_path, "w", encoding="utf-8") as f:
-            json.dump(final_clusters, f, ensure_ascii=False, separators=(",", ":"))
+            json.dump(light_clusters, f, ensure_ascii=False, separators=(",", ":"))
+
+        out_members_path = os.path.join(folder, f"{pfx}_candidate_members_{scen}.json")
+        with open(out_members_path, "w", encoding="utf-8") as f:
+            json.dump(members_by_id, f, ensure_ascii=False, separators=(",", ":"))
 
         summary = dong_summary(final_clusters, dong_pool)
         out_summary_path = os.path.join(folder, f"{pfx}_candidate_dong_summary_{scen}.json")
