@@ -5,23 +5,39 @@
 
 ## 실행 (빌드 시스템 없음 — 순수 정적 + Python)
 - `python3 -m http.server 8002` 후 브라우저에서:
-  - `http://localhost:8002/index.html` — **전국 메인 뷰어**(14개 시군 개요 + 클러스터 요약 + 다중선택)
-  - `http://localhost:8002/<sido>/<code_name>/<시군>_map.html` — 시군 상세(필지·반경·정책 토글)
+  - `http://localhost:8002/index.html` — **전국 메인 뷰어**(14개 시군 카드: 시나리오별 후보 수/합계MW/평균 개인비율/grid_ok, 다중선택 시 합계)
+  - `http://localhost:8002/<sido>/<code_name>/<시군>_map.html` — 시군 상세(시나리오·개인비율 상한 t·후보 폴리곤·읍면동 코로플레스·필지 점 레이어)
 - 편의 실행: `run.command`(mac) / `run.bat`(win). `package.json` 없음(npm 불필요).
+- **2026-07-04부로 뷰어가 "산단 반경 선택" 모델에서 "특구 후보 클러스터 열람" 모델로 전면 재구축됨**
+  (구 UI: 산단 선택→반경 슬라이더→필지 실시간 계산. 신 UI: 시나리오/개인비율 상한으로
+  미리 계산된 후보 클러스터를 필터링해 보기만 함 — 클라이언트 계산 없음).
 
 ## 구조
-- `index.html` — 전국 뷰어. `SGGS` 배열(시군 좌표·산단·code)이 핵심. 클러스터 요약은 `cluster_summary.json` 로드.
+- `index.html`, `<시군>_map.html` — **템플릿에서 생성됨(직접 손편집 금지)**. 소스는
+  `scripts/templates/index_template.html`/`viewer_template.html` + `scripts/build_viewer.py`.
+- `scripts/sggs_data.json` — 시군 메타(이름·좌표·산단 URL, 과거 index.html의 SGGS 배열을
+  1회 추출해 고정) — `build_viewer.py`의 입력.
 - `chungnam/*/`, `gyeonggi/*/` — 시군별 폴더. 각 `<시군>_map.html` + 데이터 파일.
 - `supagit/` — 동일 뷰어의 **Supabase 연동 변형**(현재 `config.js` 자격증명 placeholder, 미연결). 범위 밖이면 건드리지 말 것.
-- `scripts/` — 빌드·일괄패치 스크립트. `cluster_db/clusters.db` = 클러스터 원천 DB.
+- `scripts/` — 빌드 스크립트. `scripts/legacy/` = 폐기된 `_patch_*.py` 5종(과거 문자열
+  치환 패치 방식, 더 이상 안 씀 — 참고용으로만 보존). `cluster_db/clusters.db` = 옛
+  클러스터 원천 DB(생성 스크립트 유실, `candidate_clusters` 파이프라인과 무관).
 
 ## ⚠️ 반드시 지킬 규칙
-- **14개 `<시군>_map.html`은 거의 동일하며 손으로 개별 편집 금지.** 반드시 `scripts/_patch_*.py`
-  컨벤션(glob 14개 → 문자열 치환 → 멱등 가드 → 재기록)으로 일괄 패치한다. 참고: `_patch_points.py`, `_patch_detail_layout.py`.
+- **`index.html`/`<시군>_map.html`을 손으로 직접 편집 금지.** `scripts/templates/*.html`을
+  고치고 `python3 scripts/build_viewer.py`로 전체 재생성할 것(멱등 가드 없음 — 템플릿이
+  항상 진실이라 매번 덮어씀). 과거 `_patch_*.py`(정확 문자열 치환 + 멱등 가드) 방식은
+  폐기, `scripts/legacy/`에 참고용으로만 남음.
 - **발전 계산식·표시값을 임의로 바꾸지 말 것**: 설비용량 MW = `면적(m²) × 0.045 ÷ 1000`,
   연간발전량 MWh = `MW × 8760 × 0.15`(설비이용률 15%), 자급률 = `연간발전량 ÷ 소비량 × 100`.
 - **비밀키**: `.env`의 `KEPCO_API_KEY`/`SGIS_CONSUMER_KEY`/`SGIS_CONSUMER_SECRET`는 gitignore 대상.
   값을 출력/커밋하지 말 것. 코드에서는 항상 `.env`에서만 읽는다(하드코딩 금지).
+- **grid_ok_pct 계산 규칙(확정, 2026-07-04)**: `grid_ok_pct = true 개수 / (true+false 개수)`.
+  `null`(=`pool_incomplete`, 계통 데이터 일부 없음)은 **분모에서 제외**하고 "판정불가 N건"으로
+  별도 표기한다 — null을 fail로 세면 화성·평택처럼 동 데이터 공백이 큰 시군이 실제로는
+  계통 여유가 나쁘지 않은데도 부당하게 나빠 보인다. `scripts/build_candidate_summary.py`와
+  `viewer_template.html`/`index_template.html` 양쪽에 동일하게 적용돼 있음 — 한쪽만
+  고치지 말 것.
 
 ## 데이터 파이프라인 (변경 후 재생성 필요)
 - `<시군>_parcels.geojson`(원본 폴리곤, 무거움·gitignore) → **`scripts/build_points.py`** →
@@ -117,6 +133,27 @@
      gitignore(SGIS 재호출로 재생성 가능). `crosswalk.csv`(루트, ~31KB)와
      `<시군>_dong_boundary.json`(시군별, 14개 합계 ~3.1MB)은 **커밋 대상** — 원본
      SGIS 호출 없이는 못 만드는 런타임 데이터라 `dong_pool.json`과 같은 성격.
+- **뷰어 생성 파이프라인**(템플릿 방식, 2026-07-04 전면 재구축):
+  1. `scripts/build_candidate_clusters.py` 산출물이 `members`(필지 PNU 배열, 파일 용량의
+     94.8% 차지 — 평택 S3 실측 3.4MB 중 3.2MB)를 뷰어에서 안 쓰길래 출력을 분리했다:
+     `<시군>_candidate_clusters_{scen}.json`(hull+지표만, `cluster_id` 필드 추가, **커밋
+     대상** — 뷰어가 직접 fetch)과 `<시군>_candidate_members_{scen}.json`
+     (`{cluster_id:[pnu,...]}`, gitignore, 뷰어 미사용 — 특구 확정 시 필지 명세 조회용).
+  2. `scripts/build_candidate_summary.py` — 14개 시군 × 3시나리오의 경량 클러스터
+     파일을 집계해 `candidate_summary.json`(루트, 커밋 대상, ~5KB)로. grid_ok_pct
+     규칙은 위 "반드시 지킬 규칙" 참조.
+  3. `scripts/build_viewer.py` — `scripts/templates/{viewer,index}_template.html` +
+     `scripts/sggs_data.json`(+ 시군별 `<시군>_complexes.json`)에서 14개
+     `<시군>_map.html` + `index.html`을 매번 전체 재생성. 플레이스홀더
+     `{{PFX}}/{{SGG_NAME}}/{{CENTER_LAT}}/{{CENTER_LON}}/{{COMPLEXES_JSON}}`
+     (시군 상세), `{{SGGS_JSON}}`(index) 문자열 치환뿐 — 로직 분기 없음.
+  4. 시군 상세 페이지의 fetch는 전부 **lazy + 메모리 캐싱**: 시나리오 버튼 클릭
+     시점에 그 시나리오의 `candidate_clusters_{scen}.json`만 가져오고(세션당 최대
+     3회), 필지 점 레이어·코로플레스 토글도 켤 때 처음 한 번만 각각
+     `<시군>_points.json`/`<시군>_dong_boundary.json`을 가져온다.
+  5. 코로플레스 색 구간은 **그 시군 데이터만으로 매번 재계산되는 5분위**라
+     시군 간 색 비교 불가 — 범례에 실제 kW 경계값과 "본 시군 내 상대 구간" 문구를
+     항상 같이 표시한다(구현 시 확정, 오독 방지 목적).
 
 ## 도메인 메모
 - **pnu(19자리)**: `[:2]`=시도, `[2:5]`=시군구, `[5:8]`=읍면동, `[8:10]`=리. (예 당진 = 44270)
@@ -137,5 +174,9 @@
   절의 "동-여유풀 파이프라인" 참조.
 
 ## 검증
-- 뷰어 변경은 `python3 -m http.server`로 띄워 브라우저에서 확인(가장 무거운 평택 페이지 기준). 필지 렌더는 canvas 점.
-- 시군 상세 회귀 기준(기본 산단·5.0km·토글 off): 선택 필지 수·MW·GWh·자급률이 변경 전과 일치해야 함.
+- 템플릿을 고쳤으면 `python3 scripts/build_viewer.py`로 재생성 후 `python3 -m http.server`로
+  띄워 브라우저(또는 playwright 등 헤드리스 브라우저)로 확인(가장 무거운 평택 페이지 기준).
+  콘솔 에러 없는지 반드시 확인 — 페이지 셸은 뜨는데 fetch만 조용히 실패하는 경우가 있다.
+- 시군 상세 회귀 체크리스트: 시나리오 3종 전환 시 후보 폴리곤·요약 패널 갱신, t 슬라이더로
+  개인비율 상한 낮출수록 후보 수 단조감소, 후보 클릭 시 상세 카드(usable_mw가
+  pool_incomplete면 "≥" 접두), 필지 점/코로플레스 토글 lazy fetch 정상 동작(켤 때만 요청).
