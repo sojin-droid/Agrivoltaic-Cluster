@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>{{SGG_NAME}} — 영농형 태양광 RE100 특구 후보</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont,
+                "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  display: flex; height: 100vh; overflow: hidden;
+}
+#sidebar {
+  width: 340px; padding: 16px; overflow-y: auto;
+  background: #fafafa; border-right: 1px solid #ddd;
+}
+#sidebar h1 { font-size: 18px; margin-bottom: 4px; color: #1a1a1a; }
+#sidebar h2 {
+  font-size: 12px; margin: 16px 0 8px; color: #333;
+  border-bottom: 1px solid #ddd; padding-bottom: 4px; text-transform: uppercase;
+}
+#map { flex: 1; height: 100%; }
+#detail-panel {
+  width: 320px; padding: 16px; overflow-y: auto;
+  background: #fafafa; border-left: 1px solid #ddd;
+}
+.scen-row { display: flex; gap: 6px; margin: 8px 0; }
+.scen-btn {
+  flex: 1; padding: 8px 4px; font-size: 12px; text-align: center;
+  border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;
+}
+.scen-btn.active { background: #2c5aa0; color: white; border-color: #2c5aa0; }
+.slider-row { margin: 12px 0; }
+.slider-row label { display: block; font-size: 12px; margin-bottom: 2px; }
+.slider-row .caption { font-size: 10px; color: #888; margin-bottom: 4px; }
+.slider-row input[type=range] { width: 100%; }
+.check-item {
+  display: flex; align-items: center; padding: 4px 0;
+  font-size: 12px; cursor: pointer;
+}
+.check-item input { margin-right: 8px; }
+.summary-panel {
+  background: #2c5aa0; color: white; padding: 12px; border-radius: 6px;
+  margin: 12px 0; font-size: 12px; line-height: 1.6;
+}
+.summary-panel .big { font-size: 20px; font-weight: bold; display: block; }
+.summary-panel .basis { font-size: 10px; opacity: 0.85; margin-top: 6px; }
+.legend-box {
+  background: white; border: 1px solid #ddd; border-radius: 4px;
+  padding: 8px 10px; font-size: 11px; margin: 8px 0; line-height: 1.6;
+}
+.legend-swatch { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(0,0,0,0.3); }
+.card-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 12px; }
+.card-row b { color: #1a1a1a; }
+#detail-panel h2 { font-size: 13px; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
+.empty-note { font-size: 12px; color: #999; }
+</style>
+</head>
+<body>
+<div style="position:fixed;top:8px;right:8px;z-index:9999;">
+  <a href="../../index.html" style="background:#374151;color:white;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);">&larr; 전체 시군 목록</a>
+</div>
+
+<div id="sidebar">
+  <h1>{{SGG_NAME}} — 특구 후보</h1>
+  <div style="font-size:11px;color:#666;">산업단지 주변 농지 태양광 특구 후보(용량 제약 영역성장 분할, 0.045kW/m²)</div>
+
+  <h2>시나리오</h2>
+  <div class="scen-row">
+    <div class="scen-btn" data-scen="S0">S0 현행법</div>
+    <div class="scen-btn active" data-scen="S3">S3 특별법</div>
+    <div class="scen-btn" data-scen="SMAX">SMAX 이론최대</div>
+  </div>
+
+  <div class="slider-row">
+    <label>개인소유 비율 상한: <b id="t-val">50</b>%</label>
+    <div class="caption">낮을수록 부지 확보 리스크 낮은 후보만 표시</div>
+    <input type="range" id="t-slider" min="10" max="50" step="10" value="50">
+  </div>
+
+  <div class="check-item">
+    <input type="checkbox" id="chk-min5" checked>
+    <label for="chk-min5">5MW 이상만 표시</label>
+  </div>
+  <div class="check-item">
+    <input type="checkbox" id="chk-points">
+    <label for="chk-points">필지 점 레이어(소유구분 색)</label>
+  </div>
+  <div class="check-item">
+    <input type="checkbox" id="chk-choropleth">
+    <label for="chk-choropleth">읍면동 계통 여유용량 코로플레스</label>
+  </div>
+
+  <div id="summary-panel" class="summary-panel">불러오는 중&hellip;</div>
+
+  <h2>범례 — 후보 폴리곤</h2>
+  <div class="legend-box">
+    <div><span class="legend-swatch" style="background:#22c55e;"></span>계통 여유 충분(grid_ok)</div>
+    <div><span class="legend-swatch" style="background:repeating-linear-gradient(45deg,#ccc,#ccc 3px,#eee 3px,#eee 6px);"></span>계통 데이터 일부 없음(판정불가)</div>
+    <div><span class="legend-swatch" style="background:#f97316;"></span>계통 여유 부족</div>
+  </div>
+
+  <div id="choropleth-legend" class="legend-box" style="display:none;"></div>
+</div>
+
+<div id="map"></div>
+
+<div id="detail-panel">
+  <h2>후보 상세</h2>
+  <div id="detail-body" class="empty-note">지도에서 후보 폴리곤을 클릭하세요.</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const PFX = "{{PFX}}";
+const SGG_NAME = "{{SGG_NAME}}";
+const COMPLEXES = {{COMPLEXES_JSON}};
+const CENTER = [{{CENTER_LAT}}, {{CENTER_LON}}];
+
+const OWNER_COLORS = {"국유":"#185FA5","공공":"#378ADD","법인":"#BA7517","개인":"#3B6D11","종중·종교":"#534AB7","기타":"#888"};
+const PANEL_DENSITY = 0.225 * 0.20; // = 0.045 kW/m^2 (CLAUDE.md 고정 공식)
+const HOURS_PER_YEAR = 8760, CAPACITY_FACTOR = 0.15;
+function fmtMw(mw) { return Math.round(mw).toLocaleString() + " MW"; }
+
+const map = L.map("map", { preferCanvas: true }).setView(CENTER, 11);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors", maxZoom: 19
+}).addTo(map);
+
+// ── 산단 마커(기존 addComplexMarkers 이식) ──
+const complexLayer = L.layerGroup().addTo(map);
+(COMPLEXES || []).forEach(function(cx) {
+  const dem = cx.is_demand_only;
+  const col = dem ? "#dc2626" : "#7c3aed";
+  const ic = L.divIcon({
+    className: "", iconSize: [16, 16], iconAnchor: [8, 8],
+    html: '<div style="width:12px;height:12px;background:' + col + ';border:2px solid #fff;border-radius:' +
+          (dem ? "50%" : "2px") + ';box-shadow:0 1px 3px rgba(0,0,0,.6)"></div>'
+  });
+  L.marker([cx.lat, cx.lon], { icon: ic, zIndexOffset: 500 })
+    .bindTooltip(cx.name, { direction: "top" })
+    .bindPopup("<b>" + cx.name + "</b><br>" + (dem ? "대형 소비처" : "산업단지") +
+               "<br>연 전력수요 " + Math.round(cx.elec_gwh || 0).toLocaleString() + " GWh")
+    .addTo(complexLayer);
+});
+
+// ── SVG 해칭 패턴(계통 데이터 일부 없음 표시용) — 최초 1회 주입 ──
+let hatchReady = false;
+function ensureHatchPattern() {
+  if (hatchReady) return;
+  const svg = map.getPanes().overlayPane.querySelector("svg");
+  if (!svg) return;
+  let defs = svg.querySelector("defs");
+  if (!defs) { defs = document.createElementNS("http://www.w3.org/2000/svg", "defs"); svg.insertBefore(defs, svg.firstChild); }
+  defs.innerHTML +=
+    '<pattern id="hatchGray" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+    '<rect width="6" height="6" fill="#eee"/><line x1="0" y1="0" x2="0" y2="6" stroke="#999" stroke-width="3"/></pattern>' +
+    '<pattern id="hatchOrange" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+    '<rect width="6" height="6" fill="#fde4d0"/><line x1="0" y1="0" x2="0" y2="6" stroke="#f97316" stroke-width="3"/></pattern>';
+  hatchReady = true;
+}
+
+// ── 시나리오별 클러스터 lazy fetch + 캐싱(최대 3회) ──
+const clusterCache = { S0: null, S3: null, SMAX: null };
+let curScen = "S3";
+function loadClusters(scen) {
+  if (clusterCache[scen]) return Promise.resolve(clusterCache[scen]);
+  return fetch(PFX + "_candidate_clusters_" + scen + ".json")
+    .then(function(r) { return r.json(); })
+    .then(function(d) { clusterCache[scen] = d; return d; })
+    .catch(function() { clusterCache[scen] = []; return []; });
+}
+
+let hullLayer = L.layerGroup().addTo(map);
+function hullColor(c) {
+  if (c.grid_ok === true) return { fillColor: "#22c55e", color: "#15803d" };
+  if (c.grid_ok === null) return { fillColor: "url(#hatchGray)", color: "#999" };
+  return { fillColor: "#f97316", color: "#c2410c" };
+}
+function renderClusters() {
+  ensureHatchPattern();
+  hullLayer.clearLayers();
+  const data = clusterCache[curScen] || [];
+  const t = parseInt(document.getElementById("t-slider").value, 10);
+  const min5 = document.getElementById("chk-min5").checked;
+  const kept = data.filter(function(c) {
+    if (c.indiv_ratio > t / 100) return false;
+    if (min5 && c.total_mw < 5) return false;
+    return true;
+  });
+  kept.forEach(function(c) {
+    if (!c.hull || c.hull.length < 3) return;
+    const latlngs = c.hull.map(function(p) { return [p[1], p[0]]; });
+    const style = hullColor(c);
+    const poly = L.polygon(latlngs, {
+      fillColor: style.fillColor, color: style.color, weight: 1.5, fillOpacity: 0.55
+    }).addTo(hullLayer);
+    poly.on("click", function() { showDetail(c); });
+  });
+  updateSummary(kept);
+}
+
+function gridOkPct(list) {
+  // grid_ok_pct = true / (true+false); null(pool_incomplete)은 분모 제외, 별도 표기(2026-07-04 확정)
+  const t = list.filter(function(c) { return c.grid_ok === true; }).length;
+  const f = list.filter(function(c) { return c.grid_ok === false; }).length;
+  const n = list.filter(function(c) { return c.grid_ok === null; }).length;
+  const denom = t + f;
+  return { t: t, f: f, n: n, pct: denom ? Math.round(t / denom * 100) : null };
+}
+
+function updateSummary(kept) {
+  const box = document.getElementById("summary-panel");
+  const totalMw = kept.reduce(function(s, c) { return s + c.total_mw; }, 0);
+  const g = gridOkPct(kept);
+  const t = document.getElementById("t-slider").value;
+  box.innerHTML =
+    '<span class="big">' + kept.length + '개 후보</span>' +
+    '합계 ' + fmtMw(totalMw) +
+    (g.pct != null ? ' · grid_ok ' + g.pct + '%(' + g.t + '/' + (g.t + g.f) + ')' : ' · grid_ok 판정 대상 없음') +
+    (g.n ? ' · 판정불가 ' + g.n + '건' : '') +
+    '<div class="basis">기준: ' + curScen + ' · 개인비율 상한 ' + t + '%' + (document.getElementById("chk-min5").checked ? ' · 5MW 이상' : '') + '</div>';
+}
+
+function showDetail(c) {
+  const body = document.getElementById("detail-body");
+  let usableLine = fmtMw(c.usable_mw);
+  if (c.pool_incomplete) usableLine = "&ge; " + Math.round(c.usable_mw).toLocaleString() + " MW (일부 동 계통 데이터 없음)";
+  body.innerHTML =
+    '<div class="card-row"><span>설비용량</span><b>' + fmtMw(c.total_mw) + '</b></div>' +
+    '<div class="card-row"><span>계통 감안 사용가능</span><b>' + usableLine + '</b></div>' +
+    '<div class="card-row"><span>연간발전량</span><b>' + c.annual_gwh.toFixed(1) + ' GWh</b></div>' +
+    '<div class="card-row"><span>개인소유 비율</span><b>' + Math.round(c.indiv_ratio * 100) + '%</b></div>' +
+    '<div class="card-row"><span>필지 수</span><b>' + c.n.toLocaleString() + '</b></div>' +
+    '<div class="card-row"><span>계통 잔여 여유</span><b>' + Math.round(c.grid_margin_kw).toLocaleString() + ' kW</b></div>' +
+    '<div class="card-row"><span>분할 방식</span><b>' + (c.split_method === "region_grow" ? "영역성장 분할" : "단일") + '</b></div>' +
+    '<div style="margin-top:8px;font-size:11px;color:#666;">소속 동: ' + c.dongs.join(", ") + '</div>';
+}
+
+// ── 시나리오 버튼 ──
+document.querySelectorAll(".scen-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".scen-btn").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    curScen = btn.dataset.scen;
+    document.getElementById("summary-panel").innerHTML = "불러오는 중&hellip;";
+    loadClusters(curScen).then(renderClusters);
+  });
+});
+document.getElementById("t-slider").addEventListener("input", function() {
+  document.getElementById("t-val").textContent = this.value;
+  renderClusters();
+});
+document.getElementById("chk-min5").addEventListener("change", renderClusters);
+
+// ── 필지 점 레이어(소유구분 색, 균일 반경, 선택 개념 없음) ──
+let pointLayer = null, pointsData = null;
+function loadPoints() {
+  if (pointsData) return Promise.resolve(pointsData);
+  return fetch(PFX + "_points.json").then(function(r) { return r.json(); })
+    .then(function(d) { pointsData = d; return d; });
+}
+function renderPoints() {
+  if (pointLayer) { map.removeLayer(pointLayer); pointLayer = null; }
+  if (!pointsData) return;
+  const OC = pointsData.owncat;
+  const markers = pointsData.rows.map(function(row) {
+    const owner = OC[row[5]] || "기타";
+    const color = OWNER_COLORS[owner] || "#888";
+    const m = L.circleMarker([row[1], row[2]], {
+      radius: 1.5, fillColor: color, fillOpacity: 0.5, color: color, weight: 0
+    });
+    m.bindPopup(
+      "<b>PNU:</b> " + row[0] + "<br>" +
+      "<b>면적:</b> " + Math.round(row[3]) + " m²<br>" +
+      "<b>경사:</b> " + (row[4] || 0).toFixed(1) + "°<br>" +
+      "<b>소유:</b> " + owner
+    );
+    return m;
+  });
+  pointLayer = L.layerGroup(markers).addTo(map);
+}
+document.getElementById("chk-points").addEventListener("change", function() {
+  if (this.checked) { loadPoints().then(renderPoints); }
+  else if (pointLayer) { map.removeLayer(pointLayer); pointLayer = null; }
+});
+
+// ── 읍면동 코로플레스(dong_boundary.json — 폴리곤+값 이미 결합, 조인 불필요) ──
+let boundaryLayer = null, boundaryData = null;
+const CHORO_COLORS = ["#fff7bc", "#fee391", "#fec44f", "#fe9929", "#d95f0e"];
+function loadBoundary() {
+  if (boundaryData) return Promise.resolve(boundaryData);
+  return fetch(PFX + "_dong_boundary.json").then(function(r) { return r.json(); })
+    .then(function(d) { boundaryData = d; return d; });
+}
+function quantileBreaks(values, n) {
+  const sorted = values.slice().sort(function(a, b) { return a - b; });
+  const breaks = [];
+  for (let i = 1; i < n; i++) {
+    const idx = Math.floor(sorted.length * i / n);
+    breaks.push(sorted[Math.min(idx, sorted.length - 1)]);
+  }
+  return breaks;
+}
+function choroColorFor(kw, breaks) {
+  for (let i = 0; i < breaks.length; i++) if (kw <= breaks[i]) return CHORO_COLORS[i];
+  return CHORO_COLORS[CHORO_COLORS.length - 1];
+}
+function renderBoundary() {
+  ensureHatchPattern();
+  if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; }
+  if (!boundaryData) return;
+  const polys = Object.values(boundaryData.polygons);
+  const values = polys.filter(function(p) { return !p.no_pool_data; }).map(function(p) { return p.pool_kw; });
+  const breaks = quantileBreaks(values, 5);
+  const layers = polys.map(function(p) {
+    // MultiPolygon은 섬처럼 떨어진 조각을 여러 개 가질 수 있어(석문면 등 실측 확인)
+    // 외곽 링 전부를 뽑아 L.polygon에 다중 폴리곤으로 넘긴다(구멍/내부 링은 무시).
+    const outerRings = p.geometry.type === "Polygon"
+      ? [p.geometry.coordinates[0]]
+      : p.geometry.coordinates.map(function(poly) { return poly[0]; });
+    const latlngsMulti = outerRings.map(function(ring) {
+      return ring.map(function(pt) { return [pt[1], pt[0]]; });
+    });
+    const fill = p.no_pool_data ? "url(#hatchGray)" : choroColorFor(p.pool_kw, breaks);
+    return L.polygon(latlngsMulti, { fillColor: fill, color: "#777", weight: 1, fillOpacity: 0.6 })
+      .bindTooltip(p.sgis_name + (p.no_pool_data ? " (데이터 없음)" : ": " + Math.round(p.pool_kw).toLocaleString() + " kW"));
+  });
+  boundaryLayer = L.layerGroup(layers).addTo(map);
+  renderChoroLegend(breaks, values);
+}
+function renderChoroLegend(breaks, values) {
+  const box = document.getElementById("choropleth-legend");
+  if (!values.length) { box.style.display = "none"; return; }
+  const lo = Math.min.apply(null, values);
+  const edges = [lo].concat(breaks);
+  let html = '<div style="font-weight:600;margin-bottom:4px;">계통 여유용량(kW) — 본 시군 내 상대 구간</div>';
+  for (let i = 0; i < CHORO_COLORS.length; i++) {
+    const from = Math.round(edges[i]).toLocaleString();
+    const to = i < breaks.length ? Math.round(breaks[i]).toLocaleString() : "최대";
+    html += '<div><span class="legend-swatch" style="background:' + CHORO_COLORS[i] + ';"></span>' + from + ' ~ ' + to + '</div>';
+  }
+  html += '<div style="margin-top:4px;"><span class="legend-swatch" style="background:repeating-linear-gradient(45deg,#ccc,#ccc 3px,#eee 3px,#eee 6px);"></span>데이터 없음</div>';
+  html += '<div style="font-size:10px;color:#999;margin-top:4px;">※ 시군마다 구간이 다시 계산됨 — 다른 시군과 색으로 비교 불가</div>';
+  box.innerHTML = html;
+  box.style.display = "block";
+}
+document.getElementById("chk-choropleth").addEventListener("change", function() {
+  if (this.checked) { loadBoundary().then(renderBoundary); }
+  else if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; document.getElementById("choropleth-legend").style.display = "none"; }
+});
+
+// ── 초기 로드: 기본 시나리오 S3 ──
+loadClusters(curScen).then(renderClusters);
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>경기·충남 영농형 태양광 RE100 특구 후보</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont,
+                "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  padding: 24px; background: #f5f5f5; color: #1a1a1a;
+}
+h1 { font-size: 22px; margin-bottom: 4px; }
+.sub { font-size: 13px; color: #666; margin-bottom: 16px; }
+.scen-row { display: flex; gap: 8px; margin: 16px 0; }
+.scen-btn {
+  padding: 8px 16px; font-size: 13px; border: 1px solid #ccc;
+  border-radius: 6px; background: white; cursor: pointer;
+}
+.scen-btn.active { background: #2c5aa0; color: white; border-color: #2c5aa0; }
+#agg-panel {
+  background: #1a1a2e; color: white; padding: 14px 18px; border-radius: 8px;
+  margin: 16px 0; font-size: 13px; display: none;
+}
+#agg-panel .big { font-size: 20px; font-weight: bold; }
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px; margin-top: 16px;
+}
+.card {
+  background: white; border-radius: 8px; padding: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12); border-left: 4px solid #7c3aed;
+}
+.card.chungnam { border-left-color: #2c5aa0; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.card-head label { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.card-metrics { font-size: 12px; line-height: 1.7; color: #444; }
+.card-metrics b { color: #1a1a1a; }
+.card a { display: inline-block; margin-top: 8px; font-size: 12px; color: #2c5aa0; text-decoration: none; }
+.card a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<h1>경기·충남 14개 시군 — 영농형 태양광 RE100 특구 후보</h1>
+<div class="sub">시나리오·개인소유 비율 상한별 특구 후보 클러스터 요약. 상세는 시군 카드에서 진입.</div>
+
+<div class="scen-row">
+  <div class="scen-btn" data-scen="S0">S0 현행법</div>
+  <div class="scen-btn active" data-scen="S3">S3 특별법</div>
+  <div class="scen-btn" data-scen="SMAX">SMAX 이론최대</div>
+</div>
+
+<div id="agg-panel"></div>
+
+<div id="grid" class="grid"></div>
+
+<script>
+const SGGS = {{SGGS_JSON}};
+let curScen = "S3";
+let SUMMARY = null;
+const selected = new Set();
+
+// ── 단일 경량 요약(candidate_summary.json) 1회 fetch + 메모리 캐싱(기존 index.html 패턴 재사용) ──
+let _loaded = false;
+function loadSummary() {
+  if (_loaded) return Promise.resolve(SUMMARY);
+  return fetch("candidate_summary.json").then(function(r) { return r.json(); })
+    .then(function(j) { SUMMARY = j; _loaded = true; return SUMMARY; })
+    .catch(function() { _loaded = true; SUMMARY = {}; return SUMMARY; });
+}
+
+function gridOkLabel(agg) {
+  // grid_ok_pct = true/(true+false), null(판정불가)은 분모 제외(2026-07-04 확정)
+  if (agg.grid_ok_denom === 0) return "grid_ok 판정 대상 없음";
+  var line = "grid_ok " + agg.grid_ok_pct + "%";
+  if (agg.grid_ok_null) line += " · 판정불가 " + agg.grid_ok_null + "건";
+  return line;
+}
+
+function renderGrid() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  const bySgg = (SUMMARY && SUMMARY[curScen]) || {};
+  SGGS.forEach(function(s) {
+    const agg = bySgg[s.code] || { n: 0, total_mw: 0, avg_indiv_ratio: 0, grid_ok_pct: null, grid_ok_denom: 0, grid_ok_null: 0 };
+    const card = document.createElement("div");
+    card.className = "card " + (s.sido.indexOf("충청") >= 0 ? "chungnam" : "gyeonggi");
+    card.innerHTML =
+      '<div class="card-head"><label><input type="checkbox" data-code="' + s.code + '"> ' + s.name + '</label></div>' +
+      '<div class="card-metrics">' +
+      '후보 <b>' + agg.n + '개</b> · 합계 <b>' + Math.round(agg.total_mw).toLocaleString() + ' MW</b><br>' +
+      '평균 개인비율 <b>' + Math.round((agg.avg_indiv_ratio || 0) * 100) + '%</b><br>' +
+      gridOkLabel(agg) +
+      '</div>' +
+      '<a href="' + s.url + '">시군 상세 &rarr;</a>';
+    grid.appendChild(card);
+    card.querySelector("input[type=checkbox]").addEventListener("change", function(e) {
+      if (e.target.checked) selected.add(s.code); else selected.delete(s.code);
+      updateAgg(bySgg);
+    });
+  });
+  updateAgg(bySgg);
+}
+
+function updateAgg(bySgg) {
+  const box = document.getElementById("agg-panel");
+  if (!selected.size) { box.style.display = "none"; return; }
+  let n = 0, mw = 0, t = 0, f = 0, nul = 0;
+  selected.forEach(function(code) {
+    const a = bySgg[code]; if (!a) return;
+    n += a.n; mw += a.total_mw;
+    t += Math.round(a.grid_ok_pct != null ? a.grid_ok_pct / 100 * a.grid_ok_denom : 0);
+    f += a.grid_ok_denom - Math.round(a.grid_ok_pct != null ? a.grid_ok_pct / 100 * a.grid_ok_denom : 0);
+    nul += a.grid_ok_null || 0;
+  });
+  const denom = t + f;
+  box.style.display = "block";
+  box.innerHTML = '<span class="big">' + selected.size + '개 시군 선택</span> · 후보 ' + n + '개 · 합계 ' +
+    Math.round(mw).toLocaleString() + ' MW' +
+    (denom ? ' · grid_ok ' + Math.round(t / denom * 100) + '%' : '') +
+    (nul ? ' · 판정불가 ' + nul + '건' : '');
+}
+
+document.querySelectorAll(".scen-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".scen-btn").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    curScen = btn.dataset.scen;
+    renderGrid();
+  });
+});
+
+loadSummary().then(renderGrid);
+</script>
+</body>
+</html>
