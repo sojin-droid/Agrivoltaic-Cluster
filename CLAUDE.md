@@ -20,7 +20,8 @@
   컨벤션(glob 14개 → 문자열 치환 → 멱등 가드 → 재기록)으로 일괄 패치한다. 참고: `_patch_points.py`, `_patch_detail_layout.py`.
 - **발전 계산식·표시값을 임의로 바꾸지 말 것**: 설비용량 MW = `면적(m²) × 0.045 ÷ 1000`,
   연간발전량 MWh = `MW × 8760 × 0.15`(설비이용률 15%), 자급률 = `연간발전량 ÷ 소비량 × 100`.
-- **비밀키**: `.env`의 `KEPCO_API_KEY`는 gitignore 대상. 값을 출력/커밋하지 말 것.
+- **비밀키**: `.env`의 `KEPCO_API_KEY`/`SGIS_CONSUMER_KEY`/`SGIS_CONSUMER_SECRET`는 gitignore 대상.
+  값을 출력/커밋하지 말 것. 코드에서는 항상 `.env`에서만 읽는다(하드코딩 금지).
 
 ## 데이터 파이프라인 (변경 후 재생성 필요)
 - `<시군>_parcels.geojson`(원본 폴리곤, 무거움·gitignore) → **`scripts/build_points.py`** →
@@ -29,7 +30,7 @@
   `cluster_summary.json`(~19KB, 전 시군·전 시나리오, **커밋 대상** — 원본 폴리곤이 gitignore라 이게 런타임 데이터). 클러스터 변경 시 재생성.
 - `.gitignore`: `*_parcels.geojson`, `*_points.json`, `cluster_db/*.db`, `.env` 제외. `cluster_summary.json`은 커밋.
 - **동-여유풀 파이프라인**(KEPCO DL 여유용량을 동 단위로 합산 — 상세는 아래 도메인 메모):
-  순서대로 4단계 실행, 앞 단계 산출물이 뒤 단계 입력.
+  순서대로 6단계 실행, 앞 단계 산출물이 뒤 단계 입력.
   1. `scripts/build_dong_list.py` — 필지 PNU에 실제 등장하는 읍면동만 추려 `scripts/dong_list.csv`(gitignore)
      생성. 소스는 `cache/beopjeongdong_raw.txt`(법정동코드 gist 미러, gitignore, 재다운로드 가능 —
      신선도 미검증이라 못 찾는 코드는 `cache/dong_list_unresolved.json`에 로그).
@@ -43,15 +44,89 @@
      후 vol2(변압기)→vol1(변전소) 순 동 단위 로컬 min() 클램프. 최종 `dong_pool.csv`/`dong_pool.json`
      (**커밋 대상** — `dong_code, dong_name, pool_capacity_kw, contributing_dl_ids,
      capped_by_upper_hierarchy, apportion_method`).
+  5. `scripts/build_sigungu_dong_pool.py` — `<시군>_points.json`의 PNU 앞 8자리로 `dong_pool.json`을
+     필터링해 `<시군>_dong_pool.json`(gitignore, build artifact)로 시군별 분리. 포맷:
+     `{dong_code: [dong_name, pool_capacity_kw, capped(0/1)]}`.
+  6. `scripts/_patch_dong_pool.py` — 14개 `<시군>_map.html`에 일괄 패치(멱등 마커 `/* DONGPOOL_PATCH */`):
+     필지 팝업에 소속 동 여유용량 표시, 결과 패널에 "계통 연계 여유(참고)"/"계통 제약 감안 시" MW
+     비교 지표, 사이드바에 선택 반경 내 동별 여유용량 목록 패널, 상한 캡 걸린 동 필지를 흐리게
+     표시하는 토글(`#chk-dong-pool-warn`) 추가. 기존 MW/GWh/자급률 계산식은 그대로 두고 참고용
+     지표만 옆에 추가 — PNU→동코드는 `pnu.substring(0,8)`로 클라이언트에서 즉석 매칭.
   - `scripts/sanity_check_ri_cache.py` — 과거 리 단위 수동 탐침(`cache/ri_probe_*.json`, **삭제 금지**,
     재현 불가한 기록)이 동-풀의 DL 집합 부분집합인지 대조 → `sanity_check_log/ri_cache_sanity.json`.
   - DL 데이터가 없는 동은 KEPCO가 `{"errCd":"404","errMsg":"NotFound"}`로 응답(정상적인 "결과 없음",
     존재하지 않는 동 이름으로도 동일하게 재현됨 — 호출 실패 아니라 캐시에 빈 데이터로 저장).
+- **특구 후보 클러스터링**(`scripts/build_candidate_clusters.py`, `--scenario`로 S0/S3/SMAX 반복 실행,
+  생략 시 3개 전부): `<시군>_points.json` 적격 필지(needs_upper_law==0 & 시나리오 키) 전체에
+  DBSCAN 1회(eps=200m, minPts=3, 순수 Python 격자 이웃탐색) → `total_mw > CAP_MW(50)`인
+  클러스터는 **용량 제약 영역성장(region growing)** 으로 무손실 분할(eps 사다리 방식은 폐기 —
+  준연속 농지에서 eps 축소가 전역 파편화를 낳음, 2026-07-03). 시드=가장 가까운 산단까지
+  거리 최소, 다음 필지가 CAP(kW) 초과시키면 그 필지는 넣지 않고 덩어리 확정. 산출물
+  `<시군>_candidate_clusters_{scen}.json`/`<시군>_candidate_dong_summary_{scen}.json`(전부
+  gitignore, build artifact). 클러스터 필드: `indiv_ratio`(면적가중 개인비율, `ownership_category
+  =='개인'` 단독 판정), `grid_ok`(bool|**null**), `usable_mw`/`grid_margin_kw`(동 데이터 일부
+  누락 시 `pool_incomplete=true`+`grid_ok=null`, margin/usable_mw는 알려진 동 기준 **하한값**으로
+  유지 — 보수적 방향으로만 틀림), `split_method`("none"|"region_grow"), `isolated`(n<minPts).
+  t(개인비율 상한, 10~50%)는 클러스터링과 무관한 **사후 표시 필터**일 뿐 재계산 없음.
+  PNU는 유일키가 아님(같은 PNU가 정책구역 경계로 잘려 면적 다른 여러 행으로 존재) — 분할 시
+  PNU로 재조회하지 말고 원본 멤버 dict를 그대로 넘길 것(과거 실제 버그, 최대 9% 면적 유실).
+- **읍면동 경계 파이프라인**(뷰어 코로플레스용, 2026-07-04 fetch+crosswalk 완료 — 다음은
+  뷰어 빌드):
+  1. `scripts/fetch_dong_boundaries.py` — SGIS(행정안전부 국가데이터처) 행정구역경계 API
+     (`https://sgisapi.mods.go.kr/OpenAPI3/boundary/hadmarea.geojson`, 인증은 `.env`의
+     `SGIS_CONSUMER_KEY`/`SGIS_CONSUMER_SECRET`로 accessToken 발급 후 사용)로 경기·충남
+     읍면동 경계 전체를 받는다. **⚠️ SGIS는 우리 PNU/법정동 8자리와 완전히 다른 통계청
+     고유 시도코드를 쓴다 — 경기=`31`, 충남=`34`(법정동 41/44 아님). 서울만 `11`로 두
+     체계가 우연히 같아서 헷갈리기 쉬움(실측 확인: 41/44로는 시도 단계부터 전부
+     `errCd:-100` 실패, 31/34로 정상 응답).** 시군구 5자리·읍면동 8자리로 우리와 자릿수는
+     같지만 숫자 자체가 무관해 **직접 조인 불가** — 이름 매칭 + point-in-polygon 폴백 필요
+     (2단계). 응답 좌표계는 EPSG:5179(UTM-K, pyproj로 4326 변환 — `pip3 install pyproj`
+     필요, build_points.py엔 미실행 방어 코드로만 있었음). `year`는 2000~2025만 허용
+     (2026 불가). 산출: `boundary_raw/{31,34}.json`(SGIS 원본, EPSG:5179, gitignore) →
+     `boundary_dong_4326.json`(경기+충남 전체 809개 읍면동 통합, EPSG:4326, 6.29MB,
+     **gitignore** — SGIS 재호출로 재생성 가능한 중간 산출물).
+  2. `scripts/build_dong_crosswalk.py` — 1차 이름 매칭: `scripts/dong_list.csv`의
+     `(sigungu_name, addrLidong)` × `boundary_dong_4326.json`의 `sgis_name`(공백 분리
+     파싱: 첫 토큰=시도, 마지막 토큰=읍면동명, 중간 전부=시군구명 — "안산시 상록구"처럼
+     시군구 2단어도 대응) 3중 문자열 매칭. **읍/면은 거의 다 성공하지만 도심 "OO동"은
+     실측 기준 실패의 98%(155개 중 152개)를 차지** — 법정동 여러 개가 행정동 하나로
+     통합돼 SGIS엔 그 법정동 이름 자체가 없음(예: "신부동"/"신당동" 등 SGIS에 문자열
+     자체가 없음, 오타 문제 아님). 2차 point-in-polygon 폴백: 이름 매칭 실패 동의 S3
+     적격 필지 대표점 전부를 그 시군구 소속 SGIS 폴리곤들에 포함판정(shapely
+     `prepared`) 후 다수결로 배정, 분산 비율(%) 기록 → confidence(≥90%=high,
+     70~90%=medium, <70%=low). 최종 매칭률(2026-07-04): 동 수 299/314(95.2%),
+     S3 적격 필지 수 100%(실패 15개 전부 필지 0개 — 파주 접경지 "동"11개+3개 면,
+     화성 반송동 1개), dong_pool_kw 98.1%. A그룹 신설 8개 동(dong_list.csv에도
+     없던 것)은 전부 point-in-polygon으로 SGIS 2025 폴리곤 발견됨(화성 동탄6~9동,
+     용인 처인구 이동읍/남사읍, 홍성 홍북읍) — 경계는 있지만 KEPCO 미조회라 풀
+     데이터는 없음(`no_pool_data:true`로 구분).
+  3. **폴리곤 공유 시 pool_kw 재집계 규칙(중요, 확정)**: 도심 통합으로 여러 법정동이
+     SGIS 폴리곤 하나를 공유하게 되면(실측 43개 폴리곤), 각 법정동의 `dong_pool_kw`를
+     **단순 합산하지 않는다** — 같은 DL이 여러 법정동에 걸쳐 있으면 이중계상된다.
+     대신 그 폴리곤에 속한 모든 법정동의 `dl_dong_index.csv` 원본 행을 모아 `dl_id`
+     유니크 기준으로 재집계(같은 dl_id는 한 번만) 후 `build_dong_pool.py`와 동일한
+     2단(vol2→vol1) 캡을 다시 적용한다. `equal_split`은 쓰지 않음 — 이미 하나의
+     행정단위로 합쳐지는 것이므로 vol3를 나누지 않고 전체 값을 쓴다.
+  4. **미매칭 동 처리 방침(확정)**: 크로스워크 실패한 동은 `<시군>_dong_boundary.json`
+     (시군별 경량 파일, **커밋 대상**)의 `dong_to_polygon`에 **키 자체가 없음** — 가짜
+     placeholder geometry를 넣지 않는다. 포맷: `{"polygons": {sgis_code: {sgis_name,
+     geometry(4326), pool_kw|null, no_pool_data, member_dongs:[법정동8자리,...]}},
+     "dong_to_polygon": {법정동8자리: sgis_code}}` — 클라이언트는 기존과 동일하게
+     `pnu.substring(0,8)`로 `dong_to_polygon` 조회 후 없으면 "데이터 없음" 해칭.
+  5. **파일 커밋 정책(확정)**: `boundary_raw/*.json`·`boundary_dong_4326.json`은
+     gitignore(SGIS 재호출로 재생성 가능). `crosswalk.csv`(루트, ~31KB)와
+     `<시군>_dong_boundary.json`(시군별, 14개 합계 ~3.1MB)은 **커밋 대상** — 원본
+     SGIS 호출 없이는 못 만드는 런타임 데이터라 `dong_pool.json`과 같은 성격.
 
 ## 도메인 메모
 - **pnu(19자리)**: `[:2]`=시도, `[2:5]`=시군구, `[5:8]`=읍면동, `[8:10]`=리. (예 당진 = 44270)
 - **ownership_category**: 6분류 표준 표기 `개인·공공·국유·법인·종중·종교·기타`(종중·종교는 **가운뎃점**). ORDER/COLORS 키도 이 표기로 통일.
-- 시나리오: `S0`(현행법) / `S3`(특별법·법개정) / `SMAX`(이론최대).
+- 시나리오: `S0`(현행법, `needs_S0_clean`만) / `S3`(특별법·법개정, 5개 키 OR) /
+  `SMAX`(이론최대, **needs_\* 15개 전부 OR** — 확정 2026-07-03). `needs_upper_law`도 이
+  OR 집합에 포함되지만 `eligible_parcels()`의 별도 하드 제외(문화재·생태·공원·군사 등
+  13종)가 시나리오 무관하게 항상 적용되므로 SMAX도 그 13종까지 풀지는 않는다.
+  `cluster_db/clusters.db`(생성 스크립트 유실, 외부 산출물)의 과거 SMAX 결과와 지금
+  정의가 달라도 정상 — 그 DB는 재현 대상이 아님.
 - **KEPCO 분산전원 API**: `GET/POST https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do`
   (`metroCd`=pnu[:2], `cityCd`=**pnu[2:5](3자리, 44270 아님)**, `addrLidong`=동/면명, `addrLi`=리명(선택),
   `apiKey`, `returnType=json|xml`). 응답 필드: `vol1`=변전소 여유용량, `vol2`=변압기 여유용량,

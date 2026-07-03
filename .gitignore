@@ -25,3 +25,14 @@ addr_lidong_raw/*.json
 cache/beopjeongdong_raw.txt
 scripts/dong_list.csv
 dl_dong_index.csv
+*_dong_pool.json
+
+# 특구 후보 클러스터링(build_candidate_clusters.py) — points.json/dong_pool.json 재생성물, 커밋 대상 아님
+# 시나리오별(S0/S3/SMAX) 3세트로 분리 저장
+*_candidate_clusters_*.json
+*_candidate_dong_summary_*.json
+
+# 읍면동 경계(fetch_dong_boundaries.py) 원본 캐시·중간 통합본 — 재호출로 재생성 가능.
+# crosswalk.csv/<시군>_dong_boundary.json은 커밋 대상(SGIS 재호출 없이 필요한 런타임 데이터)
+boundary_raw/*.json
+boundary_dong_4326.json
