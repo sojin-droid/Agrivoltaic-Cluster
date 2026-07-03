@@ -1,19 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>[공유] 김포 — 영농형 태양광 RE100 분석</title>
+<title>김포시 — 영농형 태양광 RE100 특구 후보</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-/* ── 필지 테두리 색 (한 곳에서 관리) ─────────────────
-   --parcel-base : 현행법(기본 토글)으로 선택된 필지
-   --parcel-added: 정책 토글로 추가 선택된 필지 (보라~산호)
-   --parcel-idle : 조건 미충족(반경 내 비선택) 필지            */
-:root {
-  --parcel-base:  #7c3aed;
-  --parcel-added: #e1568f;
-  --parcel-idle:  #888888;
-}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: -apple-system, BlinkMacSystemFont,
@@ -21,1312 +12,347 @@ body {
   display: flex; height: 100vh; overflow: hidden;
 }
 #sidebar {
-  width: 360px; padding: 16px; overflow-y: auto;
+  width: 340px; padding: 16px; overflow-y: auto;
   background: #fafafa; border-right: 1px solid #ddd;
 }
-#control-panel {
+#sidebar h1 { font-size: 18px; margin-bottom: 4px; color: #1a1a1a; }
+#sidebar h2 {
+  font-size: 12px; margin: 16px 0 8px; color: #333;
+  border-bottom: 1px solid #ddd; padding-bottom: 4px; text-transform: uppercase;
+}
+#map { flex: 1; height: 100%; }
+#detail-panel {
   width: 320px; padding: 16px; overflow-y: auto;
   background: #fafafa; border-left: 1px solid #ddd;
 }
-#control-panel h2 {
-  font-size: 13px; margin: 0 0 8px; color: #333;
-  border-bottom: 1px solid #ddd; padding-bottom: 4px;
+.scen-row { display: flex; gap: 6px; margin: 8px 0; }
+.scen-btn {
+  flex: 1; padding: 8px 4px; font-size: 12px; text-align: center;
+  border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer;
 }
-#sidebar h1 { font-size: 18px; margin-bottom: 8px; color: #1a1a1a; }
-#sidebar h2 {
-  font-size: 13px; margin: 16px 0 8px; color: #333;
-  border-bottom: 1px solid #ddd; padding-bottom: 4px;
-}
-.complex-select {
-  width: 100%; padding: 8px; font-size: 13px;
-  border: 1px solid #ccc; border-radius: 4px;
-  background: white; margin-bottom: 8px;
-}
-.complex-info {
-  font-size: 12px; line-height: 1.5;
-  background: #fff; padding: 10px; border-radius: 4px;
-  border-left: 3px solid #2c5aa0; margin-bottom: 12px;
-}
-.complex-info b { color: #2c5aa0; }
-.slider-row { margin: 8px 0; }
-.slider-row label {
-  display: flex; justify-content: space-between;
-  font-size: 12px; margin-bottom: 4px;
-}
+.scen-btn.active { background: #2c5aa0; color: white; border-color: #2c5aa0; }
+.slider-row { margin: 12px 0; }
+.slider-row label { display: block; font-size: 12px; margin-bottom: 2px; }
+.slider-row .caption { font-size: 10px; color: #888; margin-bottom: 4px; }
 .slider-row input[type=range] { width: 100%; }
-.recommend {
-  font-size: 11px; color: #2c5aa0; margin-top: 4px;
-  cursor: pointer; text-decoration: underline;
-}
-.check-group { margin: 8px 0; }
-.check-group-title {
-  font-size: 11px; color: #888; font-weight: bold;
-  text-transform: uppercase; margin-bottom: 4px;
-}
 .check-item {
   display: flex; align-items: center; padding: 4px 0;
-  font-size: 13px; cursor: pointer; flex-wrap: wrap;
+  font-size: 12px; cursor: pointer;
 }
-.check-item:hover { background: #eef; }
 .check-item input { margin-right: 8px; }
-.check-item.starred { font-weight: bold; }
-.check-item .law-tag { font-size: 10px; color: #888; margin-left: 6px; }
-.result-panel {
-  background: #2c5aa0; color: white;
-  padding: 12px; border-radius: 6px;
-  margin: 16px 0; font-size: 13px; line-height: 1.6;
+.summary-panel {
+  background: #2c5aa0; color: white; padding: 12px; border-radius: 6px;
+  margin: 12px 0; font-size: 12px; line-height: 1.6;
 }
-.result-panel .big {
-  font-size: 22px; font-weight: bold;
-  display: block; margin: 4px 0;
+.summary-panel .big { font-size: 20px; font-weight: bold; display: block; }
+.summary-panel .basis { font-size: 10px; opacity: 0.85; margin-top: 6px; }
+.legend-box {
+  background: white; border: 1px solid #ddd; border-radius: 4px;
+  padding: 8px 10px; font-size: 11px; margin: 8px 0; line-height: 1.6;
 }
-.result-row {
-  display: flex; justify-content: space-between;
-  margin: 2px 0;
-}
-.policy-panel {
-  background: #fff8e0; padding: 10px; border-radius: 4px;
-  font-size: 12px; line-height: 1.5;
-  border-left: 3px solid #f39c12;
-}
-.policy-panel ul { margin-left: 16px; }
-#map { flex: 1; height: 100%; }
-.legend {
-  background: white; padding: 8px 12px; border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size: 12px;
-}
-.legend .gradient-bar {
-  width: 180px; height: 10px;
-  background: linear-gradient(to right, #ffffff, #fff9c4, #ffee58, #ff8f00, #d50000);
-  margin: 4px 0;
-}
-.legend-labels {
-  display: flex; justify-content: space-between;
-  font-size: 10px; color: #555;
-}
+.legend-swatch { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(0,0,0,0.3); }
+.card-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 12px; }
+.card-row b { color: #1a1a1a; }
+#detail-panel h2 { font-size: 13px; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
+.empty-note { font-size: 12px; color: #999; }
 </style>
 </head>
 <body>
-<div style="position:fixed;top:8px;right:8px;z-index:9999;display:flex;gap:8px;"><a id="back-to-complexes" href="../../index.html" style="background:#7c3aed;color:white;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);">&larr; 산단 지도로 돌아가기</a><a href="../../index.html" style="background:#374151;color:white;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);">전체 시군 목록</a></div>
-
-<div id="sidebar">
-  <h1>김포 — 영농형 태양광</h1>
-  <div style="font-size:12px;color:#666;">산업단지 주변 농지 태양광 잠재량 분석 <span style="font-size:10px;color:#e74c3c;font-weight:bold;">[공유, 0.045 kW/m²]</span></div>
-
-  <div id="sgg-summary" style="background:linear-gradient(135deg,#9b59b6,#9b59b6cc);color:white;padding:12px;border-radius:6px;margin-bottom:12px;font-size:12px;line-height:1.5;">시군 전체 잠재량 계산 중&hellip;</div>
-
-  <div id="li-panel" style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:12px;margin-bottom:12px;font-size:12px;">
-  <div style="font-weight:600;color:#166534;margin-bottom:6px;font-size:13px;">⭐ 공공·법인 주도형 특구 후보 <span style="font-weight:400;font-size:10px;color:#888">(필지 합산 · 목표 50MW)</span></div>
-  <div id="li-summary" style="line-height:1.6;color:#374151;">데이터 로드 중…</div>
-  <div style="margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0;">
-    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#555;">
-      <span style="white-space:nowrap;">개인소유 상한</span>
-      <input type="range" id="li-cap-side" min="0" max="50" step="5" value="30" style="flex:1;">
-      <b id="li-cap-val" style="color:#166534;min-width:34px;text-align:right;">30%</b>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
-      <label style="cursor:pointer;font-size:11px;color:#555;"><input type="checkbox" id="li-show-side" checked style="vertical-align:middle;margin-right:3px"> 지도에 필지 표시</label>
-      <button id="li-csv-side" type="button" style="margin-left:auto;font-size:11px;border:1px solid #16a34a;color:#16a34a;background:#fff;border-radius:4px;padding:2px 8px;cursor:pointer;">CSV</button>
-    </div>
-    <div style="font-size:10px;color:#888;margin-top:5px;line-height:1.5;"><span style="display:inline-block;width:9px;height:9px;background:#15803d;border-radius:2px;vertical-align:middle"></span> 비개인(공공·법인) &nbsp; <span style="display:inline-block;width:9px;height:9px;background:#f59e0b;border-radius:2px;vertical-align:middle"></span> 개인 — 상한을 올리면 개인 필지가 더 합쳐져 클러스터가 커집니다</div>
-  </div>
-  <div id="li-list" style="margin-top:8px;max-height:240px;overflow:auto;"></div>
+<div style="position:fixed;top:8px;right:8px;z-index:9999;">
+  <a href="../../index.html" style="background:#374151;color:white;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);">&larr; 전체 시군 목록</a>
 </div>
 
-  <details id="complex-analysis" style="margin-bottom:12px;">
-<summary style="cursor:pointer;font-weight:600;color:#4b5563;font-size:13px;padding:8px 12px;background:#f3f4f6;border-radius:6px;list-style:none;">▾ 산단별 자급률 분석 (반경 기반, 보조)</summary>
-<div style="padding-top:10px;">
-  <h2>1. 산단 선택</h2>
-  <select id="complex-select" class="complex-select">
-    <option value="">— 산단을 선택하세요 —</option>
-  </select>
-  <div id="complex-info" class="complex-info" style="display:none;"></div>
+<div id="sidebar">
+  <h1>김포시 — 특구 후보</h1>
+  <div style="font-size:11px;color:#666;">산업단지 주변 농지 태양광 특구 후보(용량 제약 영역성장 분할, 0.045kW/m²)</div>
 
-  <h2>2. 반경 설정</h2>
+  <h2>시나리오</h2>
+  <div class="scen-row">
+    <div class="scen-btn" data-scen="S0">S0 현행법</div>
+    <div class="scen-btn active" data-scen="S3">S3 특별법</div>
+    <div class="scen-btn" data-scen="SMAX">SMAX 이론최대</div>
+  </div>
+
   <div class="slider-row">
-    <label>
-      <span>반경</span>
-      <span><b id="radius-val">5.0</b> km</span>
-    </label>
-    <input type="range" id="radius" min="0.5" max="10" step="0.5" value="5.0">
-    <div id="recommend-radius" class="recommend" style="display:none;"></div>
+    <label>개인소유 비율 상한: <b id="t-val">50</b>%</label>
+    <div class="caption">낮을수록 부지 확보 리스크 낮은 후보만 표시</div>
+    <input type="range" id="t-slider" min="10" max="50" step="10" value="50">
   </div>
 
-  <div class="result-panel">
-    <div class="result-row">
-      <span>설치 가능 농지</span>
-      <span><b id="r-parcels">0</b></span>
-    </div>
-    <div class="result-row">
-      <span>농지 면적</span>
-      <span><b id="r-area">0</b> ha</span>
-    </div>
-    <div class="result-row">
-      <span>예상 설비 용량</span>
-      <span class="big" id="r-mw">0 MW</span>
-    </div>
-    <div class="result-row">
-      <span>연간 발전량</span>
-      <span class="big" id="r-gwh">0 GWh</span>
-    </div>
-    <div class="result-row">
-      <span>전력 자급률</span>
-      <span class="big" id="r-ratio">0%</span>
-    </div>
-    <div class="result-row" title="선택 필지가 속한 읍면동의 KEPCO 배전선로 여유용량 합(동 전체 기준 근사값, 참고용)">
-      <span>계통 연계 여유(참고)</span>
-      <span class="big" id="r-grid-mw">0 MW</span>
-    </div>
-    <div class="result-row">
-      <span>계통 제약 감안 시</span>
-      <span class="big" id="r-grid-limited-mw">0 MW</span>
-    </div>
+  <div class="check-item">
+    <input type="checkbox" id="chk-min5" checked>
+    <label for="chk-min5">5MW 이상만 표시</label>
+  </div>
+  <div class="check-item">
+    <input type="checkbox" id="chk-points">
+    <label for="chk-points">필지 점 레이어(소유구분 색)</label>
+  </div>
+  <div class="check-item">
+    <input type="checkbox" id="chk-choropleth">
+    <label for="chk-choropleth">읍면동 계통 여유용량 코로플레스</label>
   </div>
 
-  <div id="dong-pool-panel" style="background:#fef3e2;border:1px solid #fcd9a8;border-radius:6px;padding:10px;margin:10px 0;font-size:11px;line-height:1.6;">
-    <div style="font-weight:600;color:#92400e;margin-bottom:4px;">&#9889; 선택 반경 내 계통 여유용량 (읍면동 단위)</div>
-    <div id="dong-pool-list" style="color:#78350f;">산단을 선택하면 표시됩니다.</div>
-    <div style="font-size:10px;color:#a16207;margin-top:6px;">※ 동 전체 기준 근사값 — 반경 내 비율로 나누지 않았습니다. KEPCO 데이터 없는 동은 제외.</div>
+  <div id="summary-panel" class="summary-panel">불러오는 중&hellip;</div>
+
+  <h2>범례 — 후보 폴리곤</h2>
+  <div class="legend-box">
+    <div><span class="legend-swatch" style="background:#22c55e;"></span>계통 여유 충분(grid_ok)</div>
+    <div><span class="legend-swatch" style="background:repeating-linear-gradient(45deg,#ccc,#ccc 3px,#eee 3px,#eee 6px);"></span>계통 데이터 일부 없음(판정불가)</div>
+    <div><span class="legend-swatch" style="background:#f97316;"></span>계통 여유 부족</div>
   </div>
 
-  <h2>4. 추진에 필요한 협의 사항</h2>
-  <div id="policy" class="policy-panel">
-    산단과 변수를 선택하면 표시됩니다.
-  </div>
-
-    <h2>5. 농지 소유 현황</h2>
-  <div id="ownership-dist"
-       style="background:#f8f9fa;padding:10px;border-radius:6px;
-              font-size:12px;color:#999;">
-    산단을 선택하면 표시됩니다.
-  </div>
-
-  <h2>6. 정책 단계별 자급률 비교</h2><div id="scenario-chart" style="background:#f5f5f5;padding:10px;border-radius:4px;font-size:11px;">산단을 선택하면 표시됩니다.</div>
-  </div>
-</details>
-
-  <h2 style="margin-top:20px;font-size:11px;color:#999;">
-    데이터: 국토부 토지정보 + 환경부 규제정보 + 농촌공사 팜맵<br>
-    <div id="formula-card" style="margin-top:16px;border:0.5px solid #ddd;border-radius:6px;overflow:hidden;font-size:11px;"><div style="padding:8px 10px;background:#7c3aed;color:white;font-size:11px;font-weight:500;display:flex;justify-content:space-between;align-items:center;"><span>발전량 계산 공식</span><span style="font-size:10px;opacity:0.9;">[공유 · 0.045 kW/m²]</span></div><div style="padding:10px;"><div style="margin-bottom:8px;"><div style="font-weight:500;margin-bottom:3px;">1단계 — 설비용량 (MW)</div><div style="background:#f8f9fa;padding:6px 8px;border-radius:4px;font-family:monospace;">면적(m²) × 0.045 kW/m² ÷ 1,000</div><div style="margin-top:3px;color:#888;">= 패널효율 20% × 차광률 22.5% (영농형 실증 기반)</div></div><div style="margin-bottom:8px;"><div style="font-weight:500;margin-bottom:3px;">2단계 — 연간 발전량 (MWh)</div><div style="background:#f8f9fa;padding:6px 8px;border-radius:4px;font-family:monospace;">설비용량(MW) × 1314h/년</div><div style="margin-top:3px;color:#888;">= 8,760h × 설비이용률 15% (일평균 3.6h 발전)</div></div><div style="margin-bottom:8px;"><div style="font-weight:500;margin-bottom:3px;">3단계 — 자급률 (%)</div><div style="background:#f8f9fa;padding:6px 8px;border-radius:4px;font-family:monospace;">연간발전량 ÷ 산단소비량 × 100</div><div style="margin-top:3px;color:#888;">산단소비량 = 최대수요(MW) × 8,760h × 60% (부하율)</div></div><div style="padding-top:6px;border-top:0.5px solid #ddd;color:#888;font-size:10px;line-height:1.5;">출처: 패널효율(한화큐셀 Q.TRON G2) · 설비이용률(한국전력 EPSIS) · 실증(전남 영암군 1,000m²→45kW)</div></div></div>
-  설비용량(MW) = 면적(m²) × 4.5% ÷ 1,000 &nbsp;|&nbsp; 연간발전량(MWh) = MW × 8,760h × 15%
-  </h2>
+  <div id="choropleth-legend" class="legend-box" style="display:none;"></div>
 </div>
 
 <div id="map"></div>
 
-<div id="control-panel">
-  <details open style="margin-bottom:0;">
-  <summary style="cursor:pointer;font-weight:600;color:#374151;font-size:14px;padding:6px 0;list-style:none;">▾ 설치 가능 조건 선택 (정책·규제)</summary>
-  <div style="padding-top:8px;">
-  <div id="checkboxes"></div>
-
-  <div style="margin:12px 0;padding:10px;border:1px solid #e0e0e0;
-              border-radius:6px;background:#fafafa;">
-    <label style="display:flex;align-items:center;gap:8px;
-                   cursor:pointer;font-size:12px;font-weight:500;">
-      <input type="checkbox" id="chk-upper-law"
-             onchange="updateMap()">
-      상위법상 제한지역 제외 (문화재·생태·공원·군사 등 13종)
-    </label>
-    <div style="font-size:10px;color:#888;margin-top:4px;padding-left:24px;
-                line-height:1.5;">
-      갯벌·하천·산림·경사도 등 일부 규제는 미반영
-    </div>
-  </div>
-
-  <div id="dong-pool-warn-box" style="margin:12px 0;padding:10px;border:1px solid #e0e0e0;
-              border-radius:6px;background:#fafafa;">  <!-- DONGPOOL_PATCH -->
-    <label style="display:flex;align-items:center;gap:8px;
-                   cursor:pointer;font-size:12px;font-weight:500;">
-      <input type="checkbox" id="chk-dong-pool-warn"
-             onchange="updateMap()">
-      계통 여유 부족(상한 캡) 읍면동 필지 흐리게 표시
-    </label>
-    <div style="font-size:10px;color:#888;margin-top:4px;padding-left:24px;
-                line-height:1.5;">
-      KEPCO 변전소·변압기 여유용량 상한에 걸린 동 — 동 전체 기준 근사치
-    </div>
-  </div>
-  </div>
-  </details>
+<div id="detail-panel">
+  <h2>후보 상세</h2>
+  <div id="detail-body" class="empty-note">지도에서 후보 폴리곤을 클릭하세요.</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const INFO = {"sgg_name": "김포", "sgg_code": "41570", "complexes": [{"name": "양촌일반산업단지", "lon": 126.6254, "lat": 37.6571, "elec_gwh": 425.7, "elec_mwh": 425736.0, "scenarios": {"S0": {"mw": 325.0, "ratio_pct": 100.3}, "S1a": {"mw": 325.0, "ratio_pct": 100.3}, "S1b": {"mw": 2576.5, "ratio_pct": 795.2}, "S2": {"mw": 2589.2, "ratio_pct": 799.1}, "S3": {"mw": 2591.0, "ratio_pct": 799.7}, "S4": {"mw": 2591.0, "ratio_pct": 799.7}, "S5": {"mw": 2591.1, "ratio_pct": 799.7}, "S6": {"mw": 3035.4, "ratio_pct": 936.9}, "S7": {"mw": 3045.1, "ratio_pct": 939.8}, "S_MAX": {"mw": 3045.1, "ratio_pct": 939.8}}, "min_radius_S0_km": 10.0, "min_radius_S3_km": 2.5, "max_radius_km": 10.0}, {"name": "통진일반산업단지", "lon": 126.6031, "lat": 37.6948, "elec_gwh": 84.1, "elec_mwh": 84096.0, "scenarios": {"S0": {"mw": 55.7, "ratio_pct": 87.0}, "S1a": {"mw": 55.7, "ratio_pct": 87.0}, "S1b": {"mw": 1095.4, "ratio_pct": 1711.6}, "S2": {"mw": 1100.4, "ratio_pct": 1719.4}, "S3": {"mw": 1100.4, "ratio_pct": 1719.4}, "S4": {"mw": 1100.4, "ratio_pct": 1719.4}, "S5": {"mw": 1100.4, "ratio_pct": 1719.4}, "S6": {"mw": 1409.2, "ratio_pct": 2201.9}, "S7": {"mw": 1409.2, "ratio_pct": 2201.9}, "S_MAX": {"mw": 1409.2, "ratio_pct": 2201.9}}, "min_radius_S0_km": 5.5, "min_radius_S3_km": 1.5, "max_radius_km": 10.0}, {"name": "학운일반산업단지", "lon": 126.605, "lat": 37.645, "elec_gwh": 394.2, "elec_mwh": 394200.0, "scenarios": {"S0": {"mw": 318.9, "ratio_pct": 106.3}, "S1a": {"mw": 318.9, "ratio_pct": 106.3}, "S1b": {"mw": 2233.8, "ratio_pct": 744.6}, "S2": {"mw": 2244.3, "ratio_pct": 748.1}, "S3": {"mw": 2244.9, "ratio_pct": 748.3}, "S4": {"mw": 2244.9, "ratio_pct": 748.3}, "S5": {"mw": 2244.9, "ratio_pct": 748.3}, "S6": {"mw": 2592.6, "ratio_pct": 864.2}, "S7": {"mw": 2599.4, "ratio_pct": 866.5}, "S_MAX": {"mw": 2599.4, "ratio_pct": 866.5}}, "min_radius_S0_km": 8.5, "min_radius_S3_km": 3.0, "max_radius_km": 10.0}], "policy_map": {"S0": "현행법", "S1a": "농식품부 (진흥기타)", "S1b": "농식품부 (보호구역)", "S2": "농식품부 (시설재배지)", "S3": "농식품부 (진흥구역, 법 개정) ★", "S4": "국토부 (잡종지)", "S5": "지자체·국토부 (경사·토지이용)", "S6": "국방부 (군사완충)", "S7": "환경부·국립공원공단", "S_MAX": "산업부 (광업)"}};
+const PFX = "gimpo";
+const SGG_NAME = "김포시";
+const COMPLEXES = [{"name": "양촌일반산업단지", "lat": 37.6571, "lon": 126.6254, "elec_gwh": 425.7, "is_demand_only": false}, {"name": "통진일반산업단지", "lat": 37.6948, "lon": 126.6031, "elec_gwh": 84.1, "is_demand_only": false}, {"name": "학운일반산업단지", "lat": 37.645, "lon": 126.605, "elec_gwh": 394.2, "is_demand_only": false}];
+const CENTER = [37.6656, 126.6112];
 
-const POLICY_MAP = {
-  needs_S0_clean: { label: "현재 법령으로 설치 가능", dept: "추가 협의 불필요",
-                    law: "현행법", group: "현재 법령 기준", starred: false },
-  needs_agp_other: { label: "농업보호구역 외 지역", dept: "농식품부",
-                      law: "농지법 (행정 협의)", group: "농림축산식품부 협의",
-                      starred: false },
-  needs_agp_protect: { label: "농업보호구역 해제", dept: "농식품부",
-                        law: "농지법 제30조", group: "농림축산식품부 협의",
-                        starred: false },
-  needs_facility: { label: "비닐하우스 등 시설재배지", dept: "농식품부",
-                     law: "농지법 시행령", group: "농림축산식품부 협의",
-                     starred: false },
-  needs_agp_core: { label: "농업진흥구역 해제", dept: "농식품부",
-                     law: "농지법 제28조 (법 개정)",
-                     group: "농림축산식품부 협의", starred: true },
-  needs_jongchunji: { label: "잡종지 (농지 정의 확대)", dept: "농식품부·국토부",
-                       law: "농지법 (정의 확대)",
-                       group: "국토교통부 협의", starred: false },
-  needs_terrain: { label: "경사 15도 초과 지역", dept: "지자체",
-                    law: "지자체 조례", group: "지자체 협의",
-                    starred: false },
-  needs_landuse: { label: "토지이용 규제 지역", dept: "국토부·지자체",
-                    law: "국토계획법", group: "국토교통부 협의",
-                    starred: false },
-  needs_military: { label: "군사보호구역 완충지", dept: "국방부",
-                     law: "군사기지법", group: "국방부 협의",
-                     starred: false },
-  needs_eco: { label: "자연환경보전 지역", dept: "환경부",
-                law: "자연환경보전법", group: "환경부 협의",
-                starred: false },
-  needs_park: { label: "자연공원 구역",
-                 dept: "환경부·공원공단·지자체",
-                 law: "자연공원법", group: "환경부 협의",
-                 starred: false },
-  needs_forest: { label: "보안림 지역", dept: "산림청",
-                   law: "산림보호법", group: "산림청 협의",
-                   starred: false },
-  needs_baekdu: { label: "백두대간 보호구역", dept: "산림청",
-                   law: "백두대간보호법", group: "산림청 협의",
-                   starred: false },
-  needs_mining: { label: "광업권 설정 지역", dept: "산업부",
-                   law: "광업법", group: "산업통상자원부 협의",
-                   starred: false },
-  needs_upper_law: { label: "상위법 규제지역 (설치 불가)", dept: "관계부처 합동",
-                      law: "상위법 통합 (생태자연도·문화재·자연공원·백두대간·갯벌·휴전선 등)",
-                      group: "상위법 규제지역",
-                      starred: false },
+const OWNER_COLORS = {"국유":"#185FA5","공공":"#378ADD","법인":"#BA7517","개인":"#3B6D11","종중·종교":"#534AB7","기타":"#888"};
+const PANEL_DENSITY = 0.225 * 0.20; // = 0.045 kW/m^2 (CLAUDE.md 고정 공식)
+const HOURS_PER_YEAR = 8760, CAPACITY_FACTOR = 0.15;
+function fmtMw(mw) { return Math.round(mw).toLocaleString() + " MW"; }
 
-};
+const map = L.map("map", { preferCanvas: true }).setView(CENTER, 11);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors", maxZoom: 19
+}).addTo(map);
 
-const PANEL_DENSITY = 0.225 * 0.20;  // 보수적: 차광률 22.5%
-const HOURS_PER_YEAR = 8760;
-const CAPACITY_FACTOR = 0.15;
-
-function calcMW(areaM2) { return areaM2 * PANEL_DENSITY / 1000; }
-function annualGwh(mw) { return mw * HOURS_PER_YEAR * CAPACITY_FACTOR / 1000; }
-function fmtGwhVal(g) { return g >= 10 ? Math.round(g).toLocaleString() : g.toFixed(1); }
-function fmtMwGwh(mw) { return Math.round(mw).toLocaleString() + " MW (연 " + fmtGwhVal(annualGwh(mw)) + " GWh)"; }
-
-// ── 시군 종합 보급 잠재량 박스 (필지 전수 집계 — 산단 반경 중복 없음) ──
-const SGG_S0_KEYS = ["needs_S0_clean"];
-const SGG_S3_KEYS = ["needs_S0_clean", "needs_agp_other", "needs_agp_protect", "needs_facility", "needs_agp_core"];
-function renderSggSummary() {
-  const box = document.getElementById("sgg-summary");
-  if (!box || !parcels.length) return;
-  let a0 = 0, a3 = 0, aMax = 0;
-  parcels.forEach(f => {
-    const p = f.properties, ar = p.area_m2 || 0;
-    if (p.needs_upper_law === 1) return;
-    aMax += ar;
-    if (SGG_S0_KEYS.some(k => p[k] === 1)) { a0 += ar; a3 += ar; }
-    else if (SGG_S3_KEYS.some(k => p[k] === 1)) { a3 += ar; }
+// ── 산단 마커(기존 addComplexMarkers 이식) ──
+const complexLayer = L.layerGroup().addTo(map);
+(COMPLEXES || []).forEach(function(cx) {
+  const dem = cx.is_demand_only;
+  const col = dem ? "#dc2626" : "#7c3aed";
+  const ic = L.divIcon({
+    className: "", iconSize: [16, 16], iconAnchor: [8, 8],
+    html: '<div style="width:12px;height:12px;background:' + col + ';border:2px solid #fff;border-radius:' +
+          (dem ? "50%" : "2px") + ';box-shadow:0 1px 3px rgba(0,0,0,.6)"></div>'
   });
-  const mw0 = calcMW(a0), mw3 = calcMW(a3), mwM = calcMW(aMax);
-  let demand = 0;
-  INFO.complexes.forEach(cx => { demand += cx.elec_gwh || 0; });
-  let diag;
-  if (annualGwh(mw0) >= demand) diag = "현행 법령 기준 잠재량으로 분석 대상 수요 충당 가능";
-  else if (annualGwh(mw3) >= demand) diag = "농지법 개정(농업진흥구역 허용) 시 분석 대상 수요 충당 가능";
-  else if (annualGwh(mwM) >= demand) diag = "관계 법령 전반 완화 시 분석 대상 수요 충당 가능";
-  else diag = "시군 내 농지 잠재량만으로는 수요 충당 불가 — 인접 시군 협력 또는 「분산에너지 활성화 특별법」상 분산에너지 특화지역 지정 검토 필요";
+  L.marker([cx.lat, cx.lon], { icon: ic, zIndexOffset: 500 })
+    .bindTooltip(cx.name, { direction: "top" })
+    .bindPopup("<b>" + cx.name + "</b><br>" + (dem ? "대형 소비처" : "산업단지") +
+               "<br>연 전력수요 " + Math.round(cx.elec_gwh || 0).toLocaleString() + " GWh")
+    .addTo(complexLayer);
+});
+
+// ── SVG 해칭 패턴(계통 데이터 일부 없음 표시용) — 최초 1회 주입 ──
+let hatchReady = false;
+function ensureHatchPattern() {
+  if (hatchReady) return;
+  const svg = map.getPanes().overlayPane.querySelector("svg");
+  if (!svg) return;
+  let defs = svg.querySelector("defs");
+  if (!defs) { defs = document.createElementNS("http://www.w3.org/2000/svg", "defs"); svg.insertBefore(defs, svg.firstChild); }
+  defs.innerHTML +=
+    '<pattern id="hatchGray" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+    '<rect width="6" height="6" fill="#eee"/><line x1="0" y1="0" x2="0" y2="6" stroke="#999" stroke-width="3"/></pattern>' +
+    '<pattern id="hatchOrange" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+    '<rect width="6" height="6" fill="#fde4d0"/><line x1="0" y1="0" x2="0" y2="6" stroke="#f97316" stroke-width="3"/></pattern>';
+  hatchReady = true;
+}
+
+// ── 시나리오별 클러스터 lazy fetch + 캐싱(최대 3회) ──
+const clusterCache = { S0: null, S3: null, SMAX: null };
+let curScen = "S3";
+function loadClusters(scen) {
+  if (clusterCache[scen]) return Promise.resolve(clusterCache[scen]);
+  return fetch(PFX + "_candidate_clusters_" + scen + ".json")
+    .then(function(r) { return r.json(); })
+    .then(function(d) { clusterCache[scen] = d; return d; })
+    .catch(function() { clusterCache[scen] = []; return []; });
+}
+
+let hullLayer = L.layerGroup().addTo(map);
+function hullColor(c) {
+  if (c.grid_ok === true) return { fillColor: "#22c55e", color: "#15803d" };
+  if (c.grid_ok === null) return { fillColor: "url(#hatchGray)", color: "#999" };
+  return { fillColor: "#f97316", color: "#c2410c" };
+}
+function renderClusters() {
+  ensureHatchPattern();
+  hullLayer.clearLayers();
+  const data = clusterCache[curScen] || [];
+  const t = parseInt(document.getElementById("t-slider").value, 10);
+  const min5 = document.getElementById("chk-min5").checked;
+  const kept = data.filter(function(c) {
+    if (c.indiv_ratio > t / 100) return false;
+    if (min5 && c.total_mw < 5) return false;
+    return true;
+  });
+  kept.forEach(function(c) {
+    if (!c.hull || c.hull.length < 3) return;
+    const latlngs = c.hull.map(function(p) { return [p[1], p[0]]; });
+    const style = hullColor(c);
+    const poly = L.polygon(latlngs, {
+      fillColor: style.fillColor, color: style.color, weight: 1.5, fillOpacity: 0.55
+    }).addTo(hullLayer);
+    poly.on("click", function() { showDetail(c); });
+  });
+  updateSummary(kept);
+}
+
+function gridOkPct(list) {
+  // grid_ok_pct = true / (true+false); null(pool_incomplete)은 분모 제외, 별도 표기(2026-07-04 확정)
+  const t = list.filter(function(c) { return c.grid_ok === true; }).length;
+  const f = list.filter(function(c) { return c.grid_ok === false; }).length;
+  const n = list.filter(function(c) { return c.grid_ok === null; }).length;
+  const denom = t + f;
+  return { t: t, f: f, n: n, pct: denom ? Math.round(t / denom * 100) : null };
+}
+
+function updateSummary(kept) {
+  const box = document.getElementById("summary-panel");
+  const totalMw = kept.reduce(function(s, c) { return s + c.total_mw; }, 0);
+  const g = gridOkPct(kept);
+  const t = document.getElementById("t-slider").value;
   box.innerHTML =
-    '<div style="font-size:13px;font-weight:bold;margin-bottom:6px;">&#9728;&#65039; 영농형 태양광 보급 잠재량 — 시군 종합</div>'
-    + '<div style="font-size:11px;opacity:0.95;margin-bottom:8px;">' + diag + '</div>'
-    + '<div style="border-top:1px solid rgba(255,255,255,0.3);padding-top:6px;margin-top:6px;font-size:11px;">'
-    + '현행 법령 기준: <b>' + fmtMwGwh(mw0) + '</b><br>'
-    + '농지법 개정 시(농업진흥구역 포함): <b>' + fmtMwGwh(mw3) + '</b><br>'
-    + '관계 법령 전반 완화 시(이론적 최대): <b>' + fmtMwGwh(mwM) + '</b></div>'
-    + '<div style="font-size:10px;opacity:0.85;margin-top:6px;">분석 대상 전력수요(산단·대형 소비처 합산): 연 ' + Math.round(demand).toLocaleString() + ' GWh · 발전량 환산 = 설비용량 × 1,314h/년</div>';
-}
-function calcRatio(mw, elecMwh) {
-  const annualMwh = mw * HOURS_PER_YEAR * CAPACITY_FACTOR;
-  return elecMwh > 0 ? annualMwh / elecMwh * 100 : 0;
+    '<span class="big">' + kept.length + '개 후보</span>' +
+    '합계 ' + fmtMw(totalMw) +
+    (g.pct != null ? ' · grid_ok ' + g.pct + '%(' + g.t + '/' + (g.t + g.f) + ')' : ' · grid_ok 판정 대상 없음') +
+    (g.n ? ' · 판정불가 ' + g.n + '건' : '') +
+    '<div class="basis">기준: ' + curScen + ' · 개인비율 상한 ' + t + '%' + (document.getElementById("chk-min5").checked ? ' · 5MW 이상' : '') + '</div>';
 }
 
-function slopeColor(slope) {
-  if (slope == null || isNaN(slope)) return "#e0e0e0";
-  if (slope < 3) return "#ffffff";
-  if (slope < 6) return "#fff9c4";
-  if (slope < 10) return "#ffee58";
-  if (slope < 15) return "#ff8f00";
-  return "#d50000";
+function showDetail(c) {
+  const body = document.getElementById("detail-body");
+  let usableLine = fmtMw(c.usable_mw);
+  if (c.pool_incomplete) usableLine = "&ge; " + Math.round(c.usable_mw).toLocaleString() + " MW (일부 동 계통 데이터 없음)";
+  body.innerHTML =
+    '<div class="card-row"><span>설비용량</span><b>' + fmtMw(c.total_mw) + '</b></div>' +
+    '<div class="card-row"><span>계통 감안 사용가능</span><b>' + usableLine + '</b></div>' +
+    '<div class="card-row"><span>연간발전량</span><b>' + c.annual_gwh.toFixed(1) + ' GWh</b></div>' +
+    '<div class="card-row"><span>개인소유 비율</span><b>' + Math.round(c.indiv_ratio * 100) + '%</b></div>' +
+    '<div class="card-row"><span>필지 수</span><b>' + c.n.toLocaleString() + '</b></div>' +
+    '<div class="card-row"><span>계통 잔여 여유</span><b>' + Math.round(c.grid_margin_kw).toLocaleString() + ' kW</b></div>' +
+    '<div class="card-row"><span>분할 방식</span><b>' + (c.split_method === "region_grow" ? "영역성장 분할" : "단일") + '</b></div>' +
+    '<div style="margin-top:8px;font-size:11px;color:#666;">소속 동: ' + c.dongs.join(", ") + '</div>';
 }
 
-// ── KEPCO 동-여유풀(참고용) — 계산값(mw/ratio)은 바꾸지 않고 옆에 표시만 ──  /* DONGPOOL_PATCH */
-let DONG_POOL = {};
-function dongPoolOf(pnu) { return pnu ? (DONG_POOL[pnu.substring(0, 8)] || null) : null; }
-function dongPoolPopupLine(pnu) {
-  var d = dongPoolOf(pnu);
-  if (!d) return "";
-  var warn = d[2] ? ' <span style="color:#b91c1c;">(상한 캡)</span>' : "";
-  return "<br><b>계통 여유(동):</b> " + Math.round(d[1]).toLocaleString() + " kW" + warn;
-}
-
-const map = L.map('map', { preferCanvas: true }).setView([37.1523, 127.319], 11);
-
-L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/" +
-  "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { attribution: "Tiles &copy; Esri", maxZoom: 19 }
-).addTo(map);
-
-const legend = L.control({position: "bottomright"});
-legend.onAdd = function() {
-  const div = L.DomUtil.create("div", "legend");
-  div.innerHTML = `
-    <b>경사도 (농지 색상 기준)</b>
-    <div class="gradient-bar"></div>
-    <div class="legend-labels">
-      <span>0°</span><span>5°</span><span>10°</span>
-      <span>15°</span><span>20°+</span>
-    </div>
-    <hr style="margin:6px 0">
-    <b>테두리</b><br>
-    <span style="color:var(--parcel-idle);">━</span> 조건 미충족<br>
-    <span style="color:var(--parcel-base);font-weight:bold;">━━</span> 현행법 설치 가능<br>
-    <span style="color:var(--parcel-added);font-weight:bold;">━━</span> 정책 추가 선택
-  `;
-  return div;
-};
-legend.addTo(map);
-
-let parcels = [];
-let parcelLayer = null;
-let radiusCircle = null;
-let complexMarker = null;
-let currentComplex = null;
-let checked = new Set(["needs_S0_clean"]);
-// 현행법 baseline 선택을 결정하는 키 (base/added 구분 기준).
-// 이 키들로 뽑힌 필지 = base(보라), 그 외 정책 토글로 추가된 필지 = added(산호).
-const BASE_KEYS = ["needs_S0_clean"];
-// 필지 테두리 색은 CSS 변수(:root)에서 한 번만 읽어 사용.
-const PARCEL_COLORS = (() => {
-  const cs = getComputedStyle(document.documentElement);
-  return {
-    base:  cs.getPropertyValue('--parcel-base').trim()  || '#7c3aed',
-    added: cs.getPropertyValue('--parcel-added').trim() || '#e1568f',
-    idle:  cs.getPropertyValue('--parcel-idle').trim()  || '#888888',
-  };
-})();
-
-const select = document.getElementById("complex-select");
-INFO.complexes.forEach((cx, i) => {
-  const opt = document.createElement("option");
-  opt.value = i;
-  if (cx.is_demand_only) {
-    opt.textContent = `${cx.name} [연 ${Math.round(cx.elec_gwh).toLocaleString()} GWh 수요]`;
-  } else {
-    const s0 = cx.scenarios.S0 ? cx.scenarios.S0.mw : 0;
-    const radS0 = cx.min_radius_S0_km;
-    const radTag = radS0 ? `자급 가능: ${radS0} km` : "10km 이내 자급 어려움";
-    opt.textContent = `${cx.name} [현행법 ${Math.round(s0).toLocaleString()} MW·연 ${fmtGwhVal(annualGwh(s0))} GWh / ${radTag}]`;
-  }
-  select.appendChild(opt);
-});
-
-select.addEventListener("change", e => {
-  const idx = e.target.value;
-  if (idx === "") {
-    document.getElementById("complex-info").style.display = "none";
-    return;
-  }
-  selectComplex(INFO.complexes[parseInt(idx)]);
-});
-
-function selectComplex(cx) {
-  currentComplex = cx;
-  const s0 = cx.scenarios.S0 || {mw:0, ratio_pct:0};
-  const s3 = cx.scenarios.S3 || {mw:0, ratio_pct:0};
-  const sMax = cx.scenarios.S_MAX || {mw:0, ratio_pct:0};
-  document.getElementById("complex-info").style.display = "block";
-  if (cx.is_demand_only) {
-    document.getElementById("complex-info").innerHTML = `
-      <b>${cx.name}</b><br>
-      연간 전력 소비: ${Math.round(cx.elec_gwh).toLocaleString()} GWh/년<br>
-      <span style="font-size:11px;color:#888;line-height:1.4;">${cx.elec_note || "수요 전용 — 정책 시나리오 미산정"}</span>
-    `;
-  } else {
-    document.getElementById("complex-info").innerHTML = `
-      <b>${cx.name}</b><br>
-      연간 전력 소비: ${Math.round(cx.elec_gwh)} GWh/년<br>
-      <b>현행법:</b> ${fmtMwGwh(s0.mw)} — 자급률 ${Math.round(s0.ratio_pct)}%<br>
-      <b>특별법 적용 시:</b> ${fmtMwGwh(s3.mw)} — 자급률 ${Math.round(s3.ratio_pct)}%<br>
-      <b>이론적 최대:</b> ${fmtMwGwh(sMax.mw)} — 자급률 ${Math.round(sMax.ratio_pct)}%
-    `;
-  }
-  map.setView([cx.lat, cx.lon], 13);
-  if (complexMarker) map.removeLayer(complexMarker);
-  complexMarker = L.marker([cx.lat, cx.lon], {
-    icon: L.divIcon({
-      html: `<div style="background:#d32f2f;color:white;padding:4px 8px;border-radius:4px;font-size:12px;font-weight:bold;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.4);">⭐ ${cx.name}</div>`,
-      className: "", iconSize: null, iconAnchor: [0, 0]
-    })
-  }).addTo(map);
-  const recDiv = document.getElementById("recommend-radius");
-  if (cx.min_radius_S0_km) {
-    recDiv.style.display = "block";
-    recDiv.innerHTML = `💡 추천 반경 (현행법 100% 자급): ${cx.min_radius_S0_km} km — 클릭`;
-    recDiv.onclick = () => {
-      document.getElementById("radius").value = cx.min_radius_S0_km;
-      document.getElementById("radius-val").textContent =
-        cx.min_radius_S0_km.toFixed(1);
-      updateMap();
-    };
-  } else {
-    recDiv.style.display = "block";
-    recDiv.innerHTML = `💡 현행법으로는 10km 이내 자급 어려움`;
-    recDiv.onclick = null;
-  }
-  updateScenarioChart();
-  updateMap();
-}
-
-
-// ── 체크박스 렌더링 (가나다순 그룹 + 그룹 토글) ────
-const GROUP_ORDER = [
-  "국방부 협의", "국토교통부 협의", "농림축산식품부 협의",
-  "산림청 협의", "산업통상자원부 협의", "지자체 협의", "환경부 협의"
-];
-const groups = {};
-Object.entries(POLICY_MAP).forEach(([key, info]) => {
-  if (!groups[info.group]) groups[info.group] = [];
-  groups[info.group].push({key, ...info});
-});
-
-const cbCont = document.getElementById("checkboxes");
-
-// 기본 항목 (needs_S0_clean)
-const baseDiv = document.createElement("div");
-baseDiv.style.cssText = "margin-bottom:8px;padding:8px 10px;border:1px solid #e0e0e0;border-radius:6px;background:#f8f9fa;";
-baseDiv.innerHTML = '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;font-weight:500;">' +
-  '<input type="checkbox" data-key="needs_S0_clean" checked disabled> ' +
-  POLICY_MAP.needs_S0_clean.label +
-  '</label><div style="font-size:10px;color:#888;margin-top:3px;padding-left:24px;">추가 협의 없이 지금 즉시 설치 가능한 농지</div>';
-cbCont.appendChild(baseDiv);
-
-// 부처별 그룹 (가나다 순, onclick 직접 방식)
-GROUP_ORDER.forEach(function(grpName) {
-  if (grpName === '현재 법령 기준') return;
-  var keys = [];
-  for (var k in POLICY_MAP) {
-    if (POLICY_MAP[k].group === grpName && k !== 'needs_S0_clean')
-      keys.push(k);
-  }
-  if (keys.length === 0) return;
-
-  var wrapper = document.createElement('div');
-  wrapper.style.cssText = 'margin-bottom:6px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;';
-
-  var header = document.createElement('div');
-  header.style.cssText = 'padding:8px 10px;background:#f8f9fa;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;';
-
-  var masterCb = document.createElement('input');
-  masterCb.type = 'checkbox';
-  masterCb.style.cssText = 'flex-shrink:0;';
-
-  var labelSpan = document.createElement('span');
-  labelSpan.style.cssText = 'font-size:12px;font-weight:500;flex:1;';
-  labelSpan.textContent = grpName;
-
-  var countSpan = document.createElement('span');
-  countSpan.style.cssText = 'font-size:10px;color:#999;';
-  countSpan.textContent = keys.length + '개';
-
-  header.appendChild(masterCb);
-  header.appendChild(labelSpan);
-  header.appendChild(countSpan);
-
-  var body = document.createElement('div');
-  body.style.cssText = 'padding:4px 10px 8px 10px;';
-
-  var childCbs = [];
-
-  keys.forEach(function(key, idx) {
-    var pm = POLICY_MAP[key];
-    var item = document.createElement('div');
-    item.style.cssText = 'padding:5px 0;font-size:11px;' +
-      (idx < keys.length - 1 ? 'border-bottom:1px solid #f0f0f0;' : '');
-
-    var lbl = document.createElement('label');
-    lbl.style.cssText = 'display:flex;align-items:flex-start;gap:8px;cursor:pointer;';
-
-    var cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.style.cssText = 'margin-top:2px;flex-shrink:0;';
-    cb.dataset.key = key;
-
-    var span = document.createElement('span');
-    var txt = pm.label || key;
-    if (pm.law) {
-      span.innerHTML = txt +
-        '<span style="display:block;font-size:10px;color:#999;margin-top:2px;">' +
-        pm.law + '</span>';
-    } else {
-      span.textContent = txt;
-    }
-
-    lbl.appendChild(cb);
-    lbl.appendChild(span);
-    item.appendChild(lbl);
-    body.appendChild(item);
-    childCbs.push(cb);
-
-    // 개별 체크박스 클릭
-    cb.onclick = function() {
-      toggleVar(this.dataset.key, this.checked);
-      var allOn = childCbs.every(function(c) { return c.checked; });
-      var someOn = childCbs.some(function(c) { return c.checked; });
-      masterCb.checked = allOn;
-      masterCb.indeterminate = someOn && !allOn;
-      updateMap();
-    };
+// ── 시나리오 버튼 ──
+document.querySelectorAll(".scen-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll(".scen-btn").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    curScen = btn.dataset.scen;
+    document.getElementById("summary-panel").innerHTML = "불러오는 중&hellip;";
+    loadClusters(curScen).then(renderClusters);
   });
-
-  // 마스터 클릭 → 하위 전체 토글
-  masterCb.onclick = function(e) {
-    e.stopPropagation();
-    var newState = this.checked;
-    childCbs.forEach(function(c) {
-      c.checked = newState;
-      toggleVar(c.dataset.key, newState);
-    });
-    this.indeterminate = false;
-    updateMap();
-  };
-
-  // 헤더 클릭 (마스터 외 영역)
-  header.onclick = function(e) {
-    if (e.target === masterCb) return;
-    masterCb.checked = !masterCb.checked;
-    var newState = masterCb.checked;
-    childCbs.forEach(function(c) {
-      c.checked = newState;
-      toggleVar(c.dataset.key, newState);
-    });
-    masterCb.indeterminate = false;
-    updateMap();
-  };
-
-  wrapper.appendChild(header);
-  wrapper.appendChild(body);
-  cbCont.appendChild(wrapper);
 });
-
-// 규제 구역 안내 섹션 (제거됨)
-
-
-// D_Regulation 일괄 토글 재부착
-var exclDiv = document.createElement("div");
-exclDiv.style.cssText = "border-top:1px solid #ddd;margin:8px 0;padding-top:8px;";
-exclDiv.innerHTML = '<div style="font-size:11px;font-weight:600;color:#555;margin-bottom:6px;">규제 구역 일괄 설정</div>' +
-  '<button id="btn-excl-all" onclick="toggleAllExclusion()" style="font-size:11px;padding:4px 10px;border:1px solid #aaa;border-radius:4px;cursor:pointer;background:#f5f5f5;">모든 규제 구역 포함 (이론적 최대)</button>' +
-  '<div style="font-size:10px;color:#888;margin-top:4px;line-height:1.4;">위 체크박스들을 전부 ON/OFF — 모든 규제 협의 완료 시 이론적 최대값</div>';
-cbCont.appendChild(exclDiv);
-
-
-const slider = document.getElementById("radius");
-slider.addEventListener("input", e => {
-  document.getElementById("radius-val").textContent =
-    parseFloat(e.target.value).toFixed(1);
-  if (window.__updRaf) return;
-  window.__updRaf = requestAnimationFrame(function() { window.__updRaf = 0; updateMap(); });
+document.getElementById("t-slider").addEventListener("input", function() {
+  document.getElementById("t-val").textContent = this.value;
+  renderClusters();
 });
+document.getElementById("chk-min5").addEventListener("change", renderClusters);
 
-// ── 데이터 로더 (렌더와 분리: 로컬 geojson ↔ Supabase RPC 교체 지점) ──
-// 시그니처: loadParcels(lat, lon, radiusM) → Promise<Feature[]>
-//  · 로컬 구현: 인자 무시, 전체 geojson 1회 로드 → 이후 updateMap()이 반경 필터(클라이언트 필터).
-//  · Supabase RPC 전환 시: 이 함수 내부만 (lat,lon,radiusM)로 호출하도록 교체.
-//    그때는 산단/반경 변경마다 재호출하는 방식이 되며, 호출부 수정은 불필요.
-const PARCEL_POINTS = "gimpo_points.json";   /* POINTS_PATCH */
-const DONG_POOL_PATH = "gimpo_dong_pool.json";   /* DONGPOOL_PATCH */
-fetch(DONG_POOL_PATH).then(function(r){ return r.ok ? r.json() : {}; }).then(function(d){ DONG_POOL = d; }).catch(function(){});
-function loadParcels(lat, lon, radiusM) {
-  return fetch(PARCEL_POINTS).then(r => r.json()).then(function(d) {
-    var NO = d.needs_order, OC = d.owncat, CAT = d.cat, PR = d.promo;
-    return d.rows.map(function(row) {
-      var props = {
-        pnu: row[0], area_m2: row[3], slope_mean: row[4],
-        ownership_category: OC[row[5]], category: CAT[row[6]], subagpromo_name: PR[row[7]]
-      };
-      var bits = row[8];
-      for (var i = 0; i < NO.length; i++) props[NO[i]] = (bits >> i) & 1;
-      return { properties: props, _lat: row[1], _lon: row[2] };
-    });
-  });
+// ── 필지 점 레이어(소유구분 색, 균일 반경, 선택 개념 없음) ──
+let pointLayer = null, pointsData = null;
+function loadPoints() {
+  if (pointsData) return Promise.resolve(pointsData);
+  return fetch(PFX + "_points.json").then(function(r) { return r.json(); })
+    .then(function(d) { pointsData = d; return d; });
 }
-
-loadParcels(
-  currentComplex ? currentComplex.lat : null,
-  currentComplex ? currentComplex.lon : null,
-  parseFloat(slider.value) * 1000
-)
-  .then(features => {
-    parcels = features;
-    console.log(`필지 ${parcels.length}개 로드`);
-    renderSggSummary();
-    if (currentComplex) updateMap();
-  })
-  .catch(err => {
-    alert("GeoJSON 로드 실패 — 로컬 서버에서 실행해야 합니다.\n\n" +
-          "1. 이 폴더에서 명령 프롬프트 열기\n" +
-          "2. python -m http.server 8000\n" +
-          "3. 브라우저: http://localhost:8000/<시군>_지도.html");
-  });
-
-// ── 계산: 필지 선택 + 결과/협의/소유 갱신 (렌더와 분리) ──
-function computeSelection() {
-  const radiusM = parseFloat(slider.value) * 1000;
-  const elecMwh = currentComplex.elec_mwh;
-  const _ulChk = document.getElementById('chk-upper-law');
-  const ulOn = _ulChk && _ulChk.checked;
-  let selected = [];
-  let inRange = [];
-  let baseSel = [];
-  parcels.forEach(f => {
-    const p = f.properties;
-    // 실시간 거리 계산 (현재 선택 산단 기준)
-    var _dist = haversineDist(f._lat, f._lon,
-      currentComplex.lat, currentComplex.lon);
-    if (_dist > radiusM + 50) return;
-    if (ulOn && p.needs_upper_law == 1) return;
-    inRange.push(f);
-    const isSel = [...checked].some(k => p[k] === 1);
-    if (isSel) selected.push(f);
-    // base = 현행법(기본 토글)만으로 선택되는 필지 (added 판정 기준)
-    if (BASE_KEYS.some(k => p[k] === 1)) baseSel.push(f);
-  });
-  const basePnus = new Set(baseSel.map(f => f.properties.pnu));
-  // added = 현재 선택집합 − base집합 (정책 토글로 새로 들어온 필지)
-  const addedSel = selected.filter(f => !basePnus.has(f.properties.pnu));
-  const totalArea = selected.reduce((s, f) =>
-    s + (f.properties.area_m2 || 0), 0);
-  const mw = calcMW(totalArea);
-  const ratio = calcRatio(mw, elecMwh);
-  document.getElementById("r-parcels").textContent =
-    selected.length.toLocaleString();
-  document.getElementById("r-area").textContent =
-    Math.round(totalArea / 10000).toLocaleString();
-  document.getElementById("r-mw").textContent =
-    Math.round(mw).toLocaleString() + " MW";
-  document.getElementById("r-gwh").textContent =
-    fmtGwhVal(annualGwh(mw)) + " GWh";
-  document.getElementById("r-ratio").textContent =
-    Math.round(ratio).toLocaleString() + "%";
-  // ── 계통 연계 여유(KEPCO 동-풀, 참고용) — 선택 필지가 속한 동들의 여유용량 합 ──  /* DONGPOOL_PATCH */
-  var dongSeen = {}, gridKw = 0;
-  selected.forEach(function(f) {
-    var code = f.properties.pnu ? f.properties.pnu.substring(0, 8) : null;
-    var d = code ? DONG_POOL[code] : null;
-    if (!d || dongSeen[code]) return;
-    dongSeen[code] = true;
-    gridKw += d[1];
-  });
-  var gridMw = gridKw / 1000;
-  var gridLimitedMw = Math.min(mw, gridMw);
-  var gmwEl = document.getElementById("r-grid-mw");
-  if (gmwEl) gmwEl.textContent = Math.round(gridMw).toLocaleString() + " MW";
-  var glEl = document.getElementById("r-grid-limited-mw");
-  if (glEl) glEl.textContent = Math.round(gridLimitedMw).toLocaleString() + " MW";
-  updateDongPoolPanel(dongSeen);
-  updatePolicy(selected);
-  updateOwnership(selected);
-  return { inRange, selected, baseSel, addedSel, basePnus, radiusM,
-           totalArea, mw, ratio };
-}
-
-// ── 렌더: 지도 레이어만 그림 (선택집합/계산값을 바꾸지 않음) ──
-function renderMap(result) {
-  const { inRange, selected, basePnus, radiusM } = result;
-  if (parcelLayer) map.removeLayer(parcelLayer);
-  if (radiusCircle) map.removeLayer(radiusCircle);
-  radiusCircle = L.circle([currentComplex.lat, currentComplex.lon], {
-    radius: radiusM, color: PARCEL_COLORS.base, weight: 2,
-    fill: false, dashArray: "8 4"
-  }).addTo(map);
-  const selectedPnus = new Set(selected.map(f => f.properties.pnu));
-  var _dpWarnEl = document.getElementById('chk-dong-pool-warn');  /* DONGPOOL_PATCH */
-  var _dpWarnOn = !!(_dpWarnEl && _dpWarnEl.checked);
-  parcelLayer = L.layerGroup(inRange.map(function(feat) {  /* POINTS_PATCH */
-    var p = feat.properties;
-    var isSel = selectedPnus.has(p.pnu);
-    var isBase = basePnus.has(p.pnu);
-    // 테두리 색만 구분: base=보라, added=산호, idle=회색 (계산값 불변)
-    var borderColor = isSel
-      ? (isBase ? PARCEL_COLORS.base : PARCEL_COLORS.added)
-      : PARCEL_COLORS.idle;
-    var _dp = _dpWarnOn ? dongPoolOf(p.pnu) : null;  /* DONGPOOL_PATCH */
-    var _dpCapped = !!(_dp && _dp[2]);
-    var m = L.circleMarker([feat._lat, feat._lon], {
-      radius: isSel ? 3 : 1.5,
-      fillColor: slopeColor(p.slope_mean),
-      fillOpacity: _dpCapped ? 0.12 : (isSel ? 0.7 : 0.28),
-      color: borderColor,
-      weight: _dpCapped ? 1 : (isSel ? 1 : 0),
-      dashArray: _dpCapped ? "2,2" : null,
+function renderPoints() {
+  if (pointLayer) { map.removeLayer(pointLayer); pointLayer = null; }
+  if (!pointsData) return;
+  const OC = pointsData.owncat;
+  const markers = pointsData.rows.map(function(row) {
+    const owner = OC[row[5]] || "기타";
+    const color = OWNER_COLORS[owner] || "#888";
+    const m = L.circleMarker([row[1], row[2]], {
+      radius: 1.5, fillColor: color, fillOpacity: 0.5, color: color, weight: 0
     });
     m.bindPopup(
-      '<b>PNU:</b> ' + p.pnu + '<br>' +
-      '<b>면적:</b> ' + Math.round(p.area_m2) + ' m²<br>' +
-      '<b>경사:</b> ' + (p.slope_mean || 0).toFixed(1) + '°<br>' +
-      '<b>소유:</b> ' + (p.ownership_category || "?") + '<br>' +
-      '<b>지목:</b> ' + (p.category || "?") + '<br>' +
-      '<b>진흥:</b> ' + (p.subagpromo_name || "비진흥") +
-      dongPoolPopupLine(p.pnu)  /* DONGPOOL_PATCH */
+      "<b>PNU:</b> " + row[0] + "<br>" +
+      "<b>면적:</b> " + Math.round(row[3]) + " m²<br>" +
+      "<b>경사:</b> " + (row[4] || 0).toFixed(1) + "°<br>" +
+      "<b>소유:</b> " + owner
     );
     return m;
-  })).addTo(map);
+  });
+  pointLayer = L.layerGroup(markers).addTo(map);
 }
+document.getElementById("chk-points").addEventListener("change", function() {
+  if (this.checked) { loadPoints().then(renderPoints); }
+  else if (pointLayer) { map.removeLayer(pointLayer); pointLayer = null; }
+});
 
-function updateMap() {
-  if (!currentComplex || parcels.length === 0) return;
-  renderMap(computeSelection());
+// ── 읍면동 코로플레스(dong_boundary.json — 폴리곤+값 이미 결합, 조인 불필요) ──
+let boundaryLayer = null, boundaryData = null;
+const CHORO_COLORS = ["#fff7bc", "#fee391", "#fec44f", "#fe9929", "#d95f0e"];
+function loadBoundary() {
+  if (boundaryData) return Promise.resolve(boundaryData);
+  return fetch(PFX + "_dong_boundary.json").then(function(r) { return r.json(); })
+    .then(function(d) { boundaryData = d; return d; });
 }
-
-function updateDongPoolPanel(dongSeen) {  /* DONGPOOL_PATCH */
-  var list = document.getElementById("dong-pool-list");
-  if (!list) return;
-  var rows = Object.keys(dongSeen).map(function(code) {
-    var d = DONG_POOL[code];
-    return d ? { name: d[0], kw: d[1], capped: d[2] } : null;
-  }).filter(Boolean);
-  if (rows.length === 0) {
-    list.innerHTML = '<span style="color:#999;">이 반경 내 KEPCO 여유용량 데이터가 없습니다.</span>';
-    return;
+function quantileBreaks(values, n) {
+  const sorted = values.slice().sort(function(a, b) { return a - b; });
+  const breaks = [];
+  for (let i = 1; i < n; i++) {
+    const idx = Math.floor(sorted.length * i / n);
+    breaks.push(sorted[Math.min(idx, sorted.length - 1)]);
   }
-  rows.sort(function(a, b) { return b.kw - a.kw; });
-  list.innerHTML = rows.map(function(r) {
-    var warn = r.capped ? ' <span style="color:#b91c1c;">&#9888;상한 캡</span>' : "";
-    return r.name + ": <b>" + Math.round(r.kw).toLocaleString() + " kW</b>" + warn;
-  }).join("<br>");
+  return breaks;
 }
-
-function updatePolicy(selected) {
-  const usedVars = new Set();
-  selected.forEach(f => {
-    const p = f.properties;
-    [...checked].forEach(k => {
-      if (k !== "needs_S0_clean" && p[k] === 1) usedVars.add(k);
+function choroColorFor(kw, breaks) {
+  for (let i = 0; i < breaks.length; i++) if (kw <= breaks[i]) return CHORO_COLORS[i];
+  return CHORO_COLORS[CHORO_COLORS.length - 1];
+}
+function renderBoundary() {
+  ensureHatchPattern();
+  if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; }
+  if (!boundaryData) return;
+  const polys = Object.values(boundaryData.polygons);
+  const values = polys.filter(function(p) { return !p.no_pool_data; }).map(function(p) { return p.pool_kw; });
+  const breaks = quantileBreaks(values, 5);
+  const layers = polys.map(function(p) {
+    // MultiPolygon은 섬처럼 떨어진 조각을 여러 개 가질 수 있어(석문면 등 실측 확인)
+    // 외곽 링 전부를 뽑아 L.polygon에 다중 폴리곤으로 넘긴다(구멍/내부 링은 무시).
+    const outerRings = p.geometry.type === "Polygon"
+      ? [p.geometry.coordinates[0]]
+      : p.geometry.coordinates.map(function(poly) { return poly[0]; });
+    const latlngsMulti = outerRings.map(function(ring) {
+      return ring.map(function(pt) { return [pt[1], pt[0]]; });
     });
+    const fill = p.no_pool_data ? "url(#hatchGray)" : choroColorFor(p.pool_kw, breaks);
+    return L.polygon(latlngsMulti, { fillColor: fill, color: "#777", weight: 1, fillOpacity: 0.6 })
+      .bindTooltip(p.sgis_name + (p.no_pool_data ? " (데이터 없음)" : ": " + Math.round(p.pool_kw).toLocaleString() + " kW"));
   });
-  const div = document.getElementById("policy");
-  if (usedVars.size === 0) {
-    div.innerHTML = "현재 법령만으로 추진 가능 — 추가 협의 불필요";
-    return;
-  }
-  const byDept = {};
-  usedVars.forEach(k => {
-    const info = POLICY_MAP[k];
-    if (!byDept[info.dept]) byDept[info.dept] = [];
-    byDept[info.dept].push(info);
-  });
-  let html = "<b>추진에 필요한 협의:</b><ul>";
-  Object.entries(byDept).forEach(([dept, items]) => {
-    items.forEach(item => {
-      html += `<li><b>${item.dept}</b>: ${item.label} <span style="color:#888;">(${item.law})</span></li>`;
-    });
-  });
-  html += "</ul>";
-  div.innerHTML = html;
+  boundaryLayer = L.layerGroup(layers).addTo(map);
+  renderChoroLegend(breaks, values);
 }
-
-// ── 초기화: 딥링크(?complex=N) + 돌아가기 링크 ───────
-(function initFromQuery() {
-  // "산단 지도로 돌아가기" → index의 해당 시군 산단 마커 화면(?sgg=코드)
-  var backLink = document.getElementById("back-to-complexes");
-  if (backLink && INFO.sgg_code) {
-    backLink.href = "../../index.html?sgg=" + INFO.sgg_code;
+function renderChoroLegend(breaks, values) {
+  const box = document.getElementById("choropleth-legend");
+  if (!values.length) { box.style.display = "none"; return; }
+  const lo = Math.min.apply(null, values);
+  const edges = [lo].concat(breaks);
+  let html = '<div style="font-weight:600;margin-bottom:4px;">계통 여유용량(kW) — 본 시군 내 상대 구간</div>';
+  for (let i = 0; i < CHORO_COLORS.length; i++) {
+    const from = Math.round(edges[i]).toLocaleString();
+    const to = i < breaks.length ? Math.round(breaks[i]).toLocaleString() : "최대";
+    html += '<div><span class="legend-swatch" style="background:' + CHORO_COLORS[i] + ';"></span>' + from + ' ~ ' + to + '</div>';
   }
-  if (INFO.complexes.length === 0) return;
-  var q = new URLSearchParams(location.search).get("complex");
-  var idx = parseInt(q, 10);
-  if (!(idx >= 0 && idx < INFO.complexes.length)) idx = 0;
-  select.value = String(idx);
-  selectComplex(INFO.complexes[idx]);
-})();
-
-function updateScenarioChart(){
-  var el=document.getElementById('scenario-chart');
-  if(!el||!currentComplex)return;
-  if(currentComplex.is_demand_only){
-    el.innerHTML='<b>'+currentComplex.name+'</b>'
-      +'<div style="font-size:11px;color:#888;margin-top:6px;line-height:1.5;">'
-      +'대형 소비처(수요 전용) — 정책 시나리오 미산정.<br>'
-      +'반경 슬라이더로 주변 농지의 영농형 태양광 잠재량을 확인하세요.</div>';
-    return;
-  }
-  var sc=currentComplex.scenarios||{};
-
-  var s0   =(sc['S0']  &&sc['S0'].ratio_pct)  ||0;
-  var s1b  =(sc['S1b'] &&sc['S1b'].ratio_pct) ||s0;
-  var s2   =(sc['S2']  &&sc['S2'].ratio_pct)  ||s1b;
-  var s3   =(sc['S3']  &&sc['S3'].ratio_pct)  ||s2;
-  var s6   =(sc['S6']  &&sc['S6'].ratio_pct)  ||s3;
-  var smax =(sc['S_MAX']&&sc['S_MAX'].ratio_pct)||s6;
-
-  var s0_mw   =(sc['S0']  &&sc['S0'].mw)  ||0;
-  var s1b_mw  =(sc['S1b'] &&sc['S1b'].mw) ||s0_mw;
-  var s2_mw   =(sc['S2']  &&sc['S2'].mw)  ||s1b_mw;
-  var s3_mw   =(sc['S3']  &&sc['S3'].mw)  ||s2_mw;
-  var s6_mw   =(sc['S6']  &&sc['S6'].mw)  ||s3_mw;
-  var smax_mw =(sc['S_MAX']&&sc['S_MAX'].mw)||s6_mw;
-
-  // 단독 추가 효과 (현행법 기준, 각각 독립적으로)
-  var add1b = Math.max(s1b - s0, 0);
-  var add2  = Math.max(s2  - s1b, 0);
-  var add3  = Math.max(s3  - s2,  0);
-  var add6  = Math.max(s6  - s3,  0);
-  var add1b_mw = Math.max(s1b_mw - s0_mw, 0);
-  var add2_mw  = Math.max(s2_mw  - s1b_mw, 0);
-  var add3_mw  = Math.max(s3_mw  - s2_mw,  0);
-  var add6_mw  = Math.max(s6_mw  - s3_mw,  0);
-
-  var items = [
-    {label:'현행법',        ratio:s0,        mw:s0_mw,        add:0,      add_mw:0,       note:'',                  is_base:true},
-    {label:'+ 농업보호구역 해제',ratio:s0+add1b,   mw:s0_mw+add1b_mw, add:add1b,  add_mw:add1b_mw, note:'농림축산식품부 협의'},
-    {label:'+ 시설재배지 포함',  ratio:s0+add2,    mw:s0_mw+add2_mw,  add:add2,   add_mw:add2_mw,  note:'농지법 시행령'},
-    {label:'+ 농업진흥구역 해제',ratio:s0+add3,    mw:s0_mw+add3_mw,  add:add3,   add_mw:add3_mw,  note:'영농형 특별법',      highlight:true},
-    {label:'+ 군사구역 포함',    ratio:s0+add6,    mw:s0_mw+add6_mw,  add:add6,   add_mw:add6_mw,  note:'국방부 협의'},
-    {label:'모든 협의 완료',     ratio:smax,       mw:smax_mw,         add:0,      add_mw:0,       note:'',                  is_max:true},
-  ];
-
-  // 추가분 0인 항목 제거 (기준·최대는 항상 표시)
-  var visible=items.filter(function(i){
-    return i.is_base||i.is_max||(i.add&&i.add>0);
-  });
-
-  var maxR=Math.max.apply(null, visible.map(function(i){return i.ratio;}));
-  if(maxR<=0) maxR=100;
-
-  var h='<b>'+currentComplex.name+'</b>'
-    +'<div style="font-size:10px;color:#888;margin-bottom:10px;line-height:1.4;">'
-    +'현행법에 각 정책을 <u>단독으로</u> 추가했을 때 자급률 (10km 반경 기준)</div>';
-
-  visible.forEach(function(item){
-    var pct=Math.min(item.ratio/maxR*100,100);
-    var r100=item.ratio>=100;
-    var color=item.highlight?'#7c3aed'
-             :item.is_max  ?'#374151'
-             :r100         ?'#166534'
-             :item.ratio>=50?'#854d0e'
-             :'#991b1b';
-
-    var add_str=(item.add&&item.add>0)
-      ?'<span style="font-size:10px;color:#888;margin-left:4px;">'
-       +'(+'+Math.round(item.add_mw).toLocaleString()+' MW)</span>'
-      :'';
-
-    var bar_label=(item.ratio>=20)
-      ?'<span style="font-size:10px;color:white;font-weight:500;">'
-       +Math.round(item.mw).toLocaleString()+' MW · 연 '+fmtGwhVal(annualGwh(item.mw))+' GWh</span>'
-      :'';
-
-    h+='<div style="margin:6px 0;">'
-      +'<div style="display:flex;justify-content:space-between;'
-       +'align-items:baseline;font-size:11px;margin-bottom:2px;">'
-      +'<span style="font-weight:'+(item.highlight?'600':'400')+';">'
-       +item.label+add_str+'</span>'
-      +'<span style="font-weight:600;color:'+color+';white-space:nowrap;'
-       +'margin-left:8px;">'+Math.round(item.ratio).toLocaleString()+'%</span>'
-      +'</div>'
-      +'<div style="height:16px;background:#e5e7eb;border-radius:3px;overflow:hidden;">'
-      +'<div style="height:100%;background:'+color+';width:'+pct+'%;'
-       +'border-radius:3px;display:flex;align-items:center;'
-       +'padding-left:6px;box-sizing:border-box;min-width:2px;">'
-       +bar_label+'</div></div>'
-      +(item.note?'<div style="font-size:10px;color:#888;text-align:right;'
-                  +'margin-top:1px;">'+item.note+'</div>':'')
-      +'</div>';
-  });
-
-  // 핵심 메시지
-  if(add3>0){
-    var s3r=s0+add3;
-    if(s3r>=100){
-      h+='<div style="margin-top:10px;padding:8px;background:#f3e8ff;'
-        +'border-left:3px solid #7c3aed;font-size:11px;border-radius:0 4px 4px 0;'
-        +'line-height:1.5;"><b>농업진흥구역 해제 하나만으로 100% 자급 가능</b><br>'
-        +'영농형 특별법 시행 후 즉시 추진 가능</div>';
-    } else {
-      h+='<div style="margin-top:10px;padding:8px;background:#fefce8;'
-        +'border-left:3px solid #7c3aed;font-size:11px;border-radius:0 4px 4px 0;'
-        +'line-height:1.5;">농업진흥구역 해제 시 자급률 '
-        +'<b>'+Math.round(s3r)+'%</b> 달성<br>'
-        +'영농형 특별법 시행이 핵심 열쇠</div>';
-    }
-  }
-
-  el.innerHTML=h;
+  html += '<div style="margin-top:4px;"><span class="legend-swatch" style="background:repeating-linear-gradient(45deg,#ccc,#ccc 3px,#eee 3px,#eee 6px);"></span>데이터 없음</div>';
+  html += '<div style="font-size:10px;color:#999;margin-top:4px;">※ 시군마다 구간이 다시 계산됨 — 다른 시군과 색으로 비교 불가</div>';
+  box.innerHTML = html;
+  box.style.display = "block";
 }
+document.getElementById("chk-choropleth").addEventListener("change", function() {
+  if (this.checked) { loadBoundary().then(renderBoundary); }
+  else if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; document.getElementById("choropleth-legend").style.display = "none"; }
+});
 
-// ── D_Regulation 일괄 토글 ─────────────────────
-var exclAllOn = false;
-var EXCL_KEYS = ["needs_military", "needs_eco", "needs_park", "needs_mining", "needs_terrain", "needs_landuse", "needs_baekdu", "needs_forest"];
-
-function toggleAllExclusion() {
-  exclAllOn = !exclAllOn;
-  var btn = document.getElementById("btn-excl-all");
-  EXCL_KEYS.forEach(function(key) {
-    var cb = document.querySelector('input[data-key="' + key + '"]');
-    if (cb) {
-      cb.checked = exclAllOn;
-      if (exclAllOn) checked.add(key);
-      else checked.delete(key);
-    }
-  });
-  btn.textContent = exclAllOn ? "환경·군사 전체 복원" : "환경·군사 전체 해제";
-  btn.style.background = exclAllOn ? "#e8f5e9" : "#f5f5f5";
-  btn.style.borderColor = exclAllOn ? "#27ae60" : "#aaa";
-  updateMap();
-}
-
-
-// ── 소유주 분류 + 패널 ──────────────────────────
-function classifyOwnership(name) {
-  if (!name || name==='None'||name==='nan'||name==='null') return '기타';
-  var n = String(name).trim();
-  if (n==='국'||n==='국유'||n.indexOf('국유')>=0) return '국유';
-  if (/[시도군구읍면]유$/.test(n)||
-      ['공공기관','공단','공사','LH','SH','토공','수공',
-       '도시공사','주택공사'].some(function(k){return n.indexOf(k)>=0;})) return '공공';
-  if (['주식회사','(주)','법인','재단','사단','협회','조합'].some(function(k){return n.indexOf(k)>=0;})) return '법인';
-  if (['종중','문중','교회','사찰','성당','절','암'].some(function(k){return n.indexOf(k)>=0;}))
-    return '종중/종교';
-  if (/^[가-힣]{2,4}$/.test(n)) return '개인';
-  return '기타';
-}
-function updateOwnership(selectedFeatures) {
-  var el = document.getElementById('ownership-dist');
-  if (!el) return;
-  var counts = {};
-  var total = selectedFeatures.length;
-  selectedFeatures.forEach(function(f) {
-    var cat = f.properties.ownership_category || '기타';
-    counts[cat] = (counts[cat]||0)+1;
-  });
-  if (total===0) { el.innerHTML='<span style="font-size:11px;">선택된 농지 없음</span>'; return; }
-  var ORDER=['개인','공공','국유','법인','종중·종교','기타'];
-  var COLORS={'국유':'#185FA5','공공':'#378ADD','법인':'#BA7517','개인':'#3B6D11','종중·종교':'#534AB7','기타':'#888'};
-  var sorted=ORDER.filter(function(k){return counts[k];})
-    .concat(Object.keys(counts).filter(function(k){return ORDER.indexOf(k)<0&&counts[k];}))
-    .sort(function(a,b){return (counts[b]||0)-(counts[a]||0);});
-  var html='<b style="font-size:12px;">설치 가능 농지 '+total.toLocaleString()+'필지 소유 구조</b><div style="margin-top:8px;">';
-  sorted.forEach(function(cat){
-    var n=counts[cat]||0;
-    var pct=(n/total*100).toFixed(1);
-    var color=COLORS[cat]||'#888';
-    html+='<div style="display:flex;align-items:center;margin:2px 0;font-size:11px;">' +
-      '<div style="width:10px;height:10px;background:'+color+';margin-right:6px;border-radius:2px;flex-shrink:0;"></div>' +
-      '<div style="flex:1;">'+cat+'</div>' +
-      '<div style="font-weight:500;min-width:90px;text-align:right;">'+n.toLocaleString()+' ('+pct+'%)</div></div>' +
-      '<div style="height:3px;background:#eee;border-radius:2px;margin-bottom:5px;">' +
-      '<div style="height:100%;background:'+color+';width:'+Math.min(parseFloat(pct),100)+'%;border-radius:2px;"></div></div>';
-  });
-  html+='</div>';
-  var govPct=((counts['국유']||0)+(counts['공공']||0))/total*100;
-  if(govPct>=30) html+='<div style="margin-top:8px;padding:6px 8px;background:#e8f5e9;border-left:3px solid #27ae60;font-size:11px;border-radius:0 4px 4px 0;line-height:1.4;">국/공유지 '+govPct.toFixed(0)+'% - 공공 주도 추진에 유리</div>';
-  var privPct=(counts['개인']||0)/total*100;
-  if(privPct>=70) html+='<div style="margin-top:6px;padding:6px 8px;background:#fff3e0;border-left:3px solid #f39c12;font-size:11px;border-radius:0 4px 4px 0;line-height:1.4;">개인 소유 '+privPct.toFixed(0)+'% - 농민/토지주와 사전 협의 중요</div>';
-  el.innerHTML=html;
-}
-
-
-// ── toggleVar helper ─────────────────────────
-function toggleVar(key, on) {
-  if (on) checked.add(key);
-  else checked.delete(key);
-}
-
-// ── 거리 계산 (Haversine) ─────────────────────
-function convexHull(points) {  /* POINTS_STYLE_PATCH */
-  var pts = points.slice().sort(function(a,b){ return a[0]-b[0] || a[1]-b[1]; });
-  if (pts.length < 3) return pts;
-  function cross(o,a,b){ return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]); }
-  var lo=[], i;
-  for (i=0;i<pts.length;i++){ while(lo.length>=2 && cross(lo[lo.length-2],lo[lo.length-1],pts[i])<=0) lo.pop(); lo.push(pts[i]); }
-  var up=[];
-  for (i=pts.length-1;i>=0;i--){ while(up.length>=2 && cross(up[up.length-2],up[up.length-1],pts[i])<=0) up.pop(); up.push(pts[i]); }
-  lo.pop(); up.pop();
-  return lo.concat(up);
-}
-
-function haversineDist(lat1, lon1, lat2, lon2) {
-  var R = 6371000;
-  var dLat = (lat2 - lat1) * Math.PI / 180;
-  var dLon = (lon2 - lon1) * Math.PI / 180;
-  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(lat1 * Math.PI / 180) *
-          Math.cos(lat2 * Math.PI / 180) *
-          Math.sin(dLon/2) * Math.sin(dLon/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-/* ===== 영농형 특구 후보 클러스터 — 레이어 + 상세 드로어 (DB 소유구성·랭킹) ===== */
-(function(){
-  var SCEN_LABEL={S0:"현행법 (S0)",S3:"영농형 특별법 (S3) ★",SMAX:"이론최대 (S_MAX)"};
-  var SCEN_SUM={S0:{n:0,mw:0},S3:{n:0,mw:0},SMAX:{n:1,mw:53}}; // 시나리오 요약(고정 산출값)
-  var OWN_COLOR={"개인":"#f59e0b","법인":"#3b82f6","국·공유":"#10b981","군유지":"#6b7280","종중·종교":"#8b5cf6","기타":"#d1d5db"};
-  var PAL=["#0072B2","#D55E00","#009E73","#CC79A7","#E69F00","#56B4E9","#F0E442","#000000"]; // Okabe-Ito 색약안전
-  function clColor(rank){return PAL[((rank||1)-1)%PAL.length];}
-  var LS=window.localStorage;
-  function lsGet(k,d){try{var v=LS.getItem(k);return v===null?d:v;}catch(e){return d;}}
-  function lsSet(k,v){try{LS.setItem(k,v);}catch(e){}}
-  var clusterLayer=L.layerGroup().addTo(map), badgeLayer=L.layerGroup().addTo(map); var complexLayer=L.layerGroup().addTo(map);
-  var curFeatures=[], curScen="S3", curLayers={}, selectedId=null;
-  window.__hideParcels=(lsGet("cl_hide","1")!=="0");
-  if(typeof renderMap==="function"){var __orm=renderMap; renderMap=function(r){__orm(r); if(window.__hideParcels){ if(parcelLayer)map.removeLayer(parcelLayer); if(radiusCircle)map.removeLayer(radiusCircle);}};}
-
-  var css=document.createElement("style");
-  css.textContent=
-    "#cl-drawer{position:fixed;top:0;right:0;width:340px;max-width:88vw;height:100%;background:#fff;box-shadow:-2px 0 16px rgba(0,0,0,.25);z-index:10000;transform:translateX(105%);transition:transform .25s,width .2s;overflow-y:auto;font-size:12px;color:#222;}"
-    +"#cl-drawer.open{transform:translateX(0);} #cl-drawer.narrow{width:212px;} #cl-drawer .hd{padding:14px 16px;color:#fff;position:relative;} #cl-drawer h3{margin:0;font-size:16px;} #cl-drawer .sub{font-size:11px;opacity:.9;margin-top:2px;}"
-    +"#cl-drawer .x{position:absolute;top:10px;right:12px;color:#fff;background:rgba(0,0,0,.2);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;}"
-    +"#cl-drawer .nw{position:absolute;top:12px;right:46px;color:#fff;background:rgba(0,0,0,.2);border:none;height:22px;padding:0 8px;border-radius:11px;cursor:pointer;font-size:10px;}"
-    +"#cl-drawer .sec{padding:12px 16px;border-bottom:1px solid #eee;} #cl-drawer .sec h4{margin:0 0 8px;font-size:12px;color:#666;font-weight:600;}"
-    +".kpi{display:flex;gap:14px;} .kpi .v{font-size:22px;font-weight:700;line-height:1;} .kpi .u{font-size:10px;color:#888;}"
-    +".obar{position:relative;height:26px;border-radius:4px;overflow:hidden;display:flex;background:#f1f1f1;} .obar div{height:100%;}"
-    +".othr{position:absolute;top:-3px;bottom:-3px;left:50%;width:2px;background:#111;} .othr span{position:absolute;top:-14px;left:3px;font-size:9px;color:#111;white-space:nowrap;}"
-    +".leg{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:8px;} .leg span{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#444;} .leg i{width:9px;height:9px;border-radius:2px;}"
-    +".badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:600;margin:2px 4px 2px 0;}"
-    +".track{height:9px;background:#eee;border-radius:5px;overflow:hidden;margin:3px 0 1px;} .track>div{height:100%;background:#7c3aed;border-radius:5px;} .orow{margin-bottom:7px;} .orow .lab{display:flex;justify-content:space-between;font-size:10px;color:#555;} .note{font-size:10px;color:#888;line-height:1.5;}"
-    +".cl-legrow{display:flex;align-items:center;gap:6px;padding:3px 2px;cursor:pointer;border-radius:4px;} .cl-legrow:hover,.cl-legrow.hl{background:#eef2ff;} .cl-legrow i{width:12px;height:12px;border-radius:3px;flex:none;}"
-    +".cl-badge{background:var(--c,#333);color:#fff;border:2px solid #fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.5);}"
-    +".cmpbar{display:flex;align-items:center;gap:5px;font-size:10px;margin:1px 0;} .cmpbar b{width:46px;flex:none;} .cmpbar .bar{height:9px;border-radius:4px;} .cmpbar .n{color:#444;}";
-  document.head.appendChild(css);
-  var dr=document.createElement("div"); dr.id="cl-drawer";
-  if(lsGet("cl_narrow","0")==="1") dr.classList.add("narrow");
-  dr.innerHTML='<div class="hd" id="cl-hd"><button class="x" onclick="window.__clClose()">×</button><button class="nw" onclick="window.__clNarrow()">좁게</button><h3 id="cl-title"></h3><div class="sub" id="cl-sub"></div></div><div id="cl-body"></div>';
-  document.body.appendChild(dr);
-  window.__clClose=function(){dr.classList.remove("open"); restyleAll();};
-  window.__clNarrow=function(){dr.classList.toggle("narrow"); lsSet("cl_narrow",dr.classList.contains("narrow")?"1":"0");};
-
-  function styleFor(rank){var c=clColor(rank);return {color:c,weight:rank===1?1:0.5,opacity:0.5,fillColor:c,fillOpacity:rank===1?0.78:0.6};}
-  function restyleAll(){curFeatures.forEach(function(f){var ly=curLayers[f.properties.cluster_id]; if(ly) ly.setStyle(styleFor(f.properties.smaa_rank));});}
-  function genGwh(mw){return mw*1314/1000;}
-  function locText(p){return p.location || (p.nearest_complex+" 인근");}
-  window.__clZoom=function(cid){var ly=curLayers[cid]; if(ly){try{map.fitBounds(ly.getBounds(),{padding:[60,60]});}catch(e){} ly.openPopup();}};
-  window.__clDrawer=function(cid){var f=curFeatures.find(function(x){return x.properties.cluster_id===cid;}); if(f) openDrawer(f.properties);};
-  window.__clHL=function(cid,on){var ly=curLayers[cid]; if(ly&&selectedId!==cid) ly.setStyle(on?{weight:5,color:"#111"}:styleFor((curFeatures.find(function(x){return x.properties.cluster_id===cid;})||{properties:{}}).properties.smaa_rank));};
-
-  function popupHtml(p){
-    return '<div style="min-width:200px"><div style="border-left:5px solid '+clColor(p.smaa_rank)+';padding-left:7px;margin-bottom:5px"><b style="font-size:15px">특구 후보 #'+p.smaa_rank+'</b>'+(p.smaa_rank===1?' 🏆':'')+'<br><span style="font-size:10px;color:#666">'+SCEN_LABEL[curScen]+'</span></div>'
-      +'설비용량 <b>'+Math.round(p.mw).toLocaleString()+' MW</b><br>총 면적 <b>'+Math.round(p.area_ha).toLocaleString()+' ha</b> ('+p.n_parcels.toLocaleString()+'필지)<br>위치 <b>'+locText(p)+'</b><br>개인소유 <b style="color:#b45309">'+(p["개인비율_pct"])+'%</b> '+((p["개인비율_pct"]<=50.5)?'✓':'⚠')+'<br>인근 산단 '+((p.nearby_complexes||[]).length)+'곳(≤10km)·공동수요 '+Math.round(p.combined_demand_gwh||0).toLocaleString()+'GWh<br>'
-      +'<button onclick="window.__clDrawer('+p.cluster_id+')" style="margin-top:6px;background:#7c3aed;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">소유구성·순위 상세 ▸</button></div>';
-  }
-  function openDrawer(p){
-    selectedId=p.cluster_id; restyleAll();
-    if(curLayers[p.cluster_id]) curLayers[p.cluster_id].setStyle({color:"#111",weight:4,fillColor:clColor(p.smaa_rank),fillOpacity:.7});
-    var c=clColor(p.smaa_rank);
-    document.getElementById("cl-hd").style.background="linear-gradient(135deg,"+c+","+c+"cc)";
-    document.getElementById("cl-title").textContent="특구 후보 #"+p.smaa_rank+(p.smaa_rank===1?"  (최우선)":"");
-    document.getElementById("cl-sub").textContent=SCEN_LABEL[curScen]+" · 김포시 · "+locText(p);
-    var mws=curFeatures.map(function(f){return f.properties.mw;}),dists=curFeatures.map(function(f){return f.properties.dist_km;}),dems=curFeatures.map(function(f){return f.properties.demand_gwh;});
-    function rankOf(a,v,asc){var s=a.slice().sort(function(x,y){return asc?x-y:y-x;});return s.indexOf(v)+1;}
-    function norm(v,a,hi){var mn=Math.min.apply(0,a),mx=Math.max.apply(0,a);if(mx===mn)return 1;var t=(v-mn)/(mx-mn);return hi?t:1-t;}
-    var n=curFeatures.length, contrib=p.demand_gwh?Math.round(genGwh(p.mw)/p.demand_gwh*100):0;
-    var obar='',leg='';
-    (p.ownership||[]).forEach(function(o){obar+='<div title="'+o.name+' '+o.pct+'%" style="width:'+o.pct+'%;background:'+(OWN_COLOR[o.name]||"#ccc")+'"></div>';leg+='<span><i style="background:'+(OWN_COLOR[o.name]||"#ccc")+'"></i>'+o.name+' '+o.pct+'% ('+o.ha+'ha)</span>';});
-    var indiv=((p.ownership||[]).find(function(o){return o.name==="개인";})||{}).pct||0;
-    var anc=(p.ownership||[]).filter(function(o){return o.name!=="개인";}).sort(function(a,b){return b.ha-a.ha;})[0];
-    var pB=p.pareto_layer===1?'<span class="badge" title="규모·산단근접·산단수요 세 기준 어디에서도 다른 후보에 밀리지 않는 최상위 그룹 (Pareto 비지배)" style="background:#dcfce7;color:#166534;">3대 기준 모두 최상위 ✓</span>':'<span class="badge" title="1순위군보다 한 단계 아래 (Pareto '+p.pareto_layer+'층)" style="background:#f3f4f6;color:#6b7280;">종합 '+p.pareto_layer+'순위군</span>';
-    var sB='<span class="badge" title="세 기준의 비중을 어떻게 잡든(모든 경우의 수로 평가) 1위가 되는 비율 — 높을수록 평가 기준에 흔들리지 않는 1순위" style="background:'+(p.smaa_rank1_pct>=50?'#fef3c7;color:#92400e':'#f3f4f6;color:#6b7280')+';">평가비중 무관 1위 '+p.smaa_rank1_pct+'%</span>';
-    function objRow(l,v,nv,rk){return '<div class="orow"><div class="lab"><span>'+l+'</span><span>'+v+' · '+rk+'위/'+n+'</span></div><div class="track"><div style="width:'+Math.round(nv*100)+'%"></div></div></div>';}
-    var b='<div class="sec"><div class="kpi"><div><div class="v">'+Math.round(p.mw).toLocaleString()+'</div><div class="u">MW 설비용량</div></div><div><div class="v">'+Math.round(p.area_ha).toLocaleString()+'</div><div class="u">ha 면적</div></div><div><div class="v">'+p.n_parcels.toLocaleString()+'</div><div class="u">필지</div></div></div><div class="note" style="margin-top:6px">위치: <b>'+locText(p)+'</b></div></div>';
-    b+='<div class="sec"><h4>소유 구성 — 사업 추진 용이도</h4><div class="obar">'+obar+'<div class="othr"><span>개인 50% 상한</span></div></div><div class="leg">'+leg+'</div><div class="note" style="margin-top:8px;">개인소유 <b style="color:#b45309">'+indiv+'%</b> '+(indiv<=50.5?'— 앵커 제약(≤50%) 충족 ✓':'— ⚠ 상한 초과')+'<br>앵커(비개인 최대): <b>'+(anc?anc.name+' '+anc.ha+'ha':'-')+'</b></div></div>';
-    b+='<div class="sec"><h4>순위 근거 (데이터 기반)</h4>'+pB+sB+'<div style="margin-top:8px"></div>'+objRow("설비용량 (scale)",Math.round(p.mw)+"MW",norm(p.mw,mws,true),rankOf(mws,p.mw,false))+objRow("산단 근접 (proximity)",p.dist_km+"km",norm(p.dist_km,dists,false),rankOf(dists,p.dist_km,true))+objRow("산단 수요 (demand)",Math.round(p.demand_gwh).toLocaleString()+"GWh",norm(p.demand_gwh,dems,true),rankOf(dems,p.demand_gwh,false))+'<div class="note" style="margin-top:6px">규모·산단근접·산단수요 3개 기준 종합 — 평가자가 어떤 항목을 더 중시하든 순위가 거의 바뀌지 않습니다. (Pareto 비지배 + SMAA 가중치 전수 샘플링)</div></div>';
-    var nb=p.nearby_complexes||[];var cd=p.combined_demand_gwh||0;var gen2=genGwh(p.mw);var cc=cd?Math.round(gen2/cd*100):0;var nbh=nb.map(function(z){return '· '+z.name+' '+z.dist_km+'km · '+Math.round(z.demand_gwh).toLocaleString()+'GWh';}).join('<br>');b+='<div class="sec"><h4>산단 매칭 · 공동 자급 기여</h4><div class="note" style="margin-bottom:4px">인근 산단 (≤10km · 전력 공유 가능) <b>'+nb.length+'곳</b>:</div>'+nbh+'<div style="margin-top:6px">공동 전력수요: <b>'+Math.round(cd).toLocaleString()+' GWh/년</b><br>클러스터 발전: 약 '+Math.round(gen2).toLocaleString()+' GWh/년<br><b>공동 자급 기여 ≈ '+cc.toLocaleString()+'%</b></div><div class="note" style="margin-top:5px">최우선 매칭: '+p.nearest_complex+' ('+p.dist_km+'km)</div></div>';
-    b+='<div class="sec note">⚠ 인접 산단 반경이 겹치면 동일 농지가 복수 후보에 계산될 수 있어, 동시 추진 시 우선순위로 중복 정리 필요.</div>';
-    document.getElementById("cl-body").innerHTML=b; dr.classList.add("open");
-  }
-  function compareHtml(){
-    var mx=SCEN_SUM.SMAX.mw||1, h='<div style="font-size:10px;color:#666;margin-bottom:2px">시나리오 비교</div>';
-    ["S0","S3","SMAX"].forEach(function(s){var d=SCEN_SUM[s],w=Math.max(2,Math.round(d.mw/mx*90)),cur=(s===curScen);
-      h+='<div class="cmpbar"><b style="'+(cur?"font-weight:700;color:#111":"color:#777")+'">'+(s==="SMAX"?"최대":s==="S3"?"특별법":"현행법")+'</b>'
-        +'<div class="bar" style="width:'+w+'px;background:'+(cur?"#7c3aed":"#c4b5fd")+'"></div>'
-        +'<span class="n">'+(d.n?d.n+"개·"+d.mw.toLocaleString()+"MW":"0개")+'</span></div>';});
-    return h;
-  }
-  function renderLegend(){
-    var el=document.getElementById("cl-info"); if(!el) return;
-    var cmp='<div id="cl-compare" style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #eee">'+compareHtml()+'</div>';
-    if(curFeatures.length===0){el.innerHTML=cmp+'<b>'+SCEN_LABEL[curScen]+'</b><br>적격 후보 <b>0개</b><br><span style="color:#b91c1c">현행법만으론 ≤50%개인 & ≥50MW 후보 없음</span>';return;}
-    var tot=curFeatures.reduce(function(s,f){return s+f.properties.mw;},0);
-    var html=cmp+'<div style="display:flex;justify-content:space-between;align-items:center"><b>후보 '+curFeatures.length+'개 · '+Math.round(tot).toLocaleString()+'MW</b><button onclick="window.__clCSV()" style="font-size:10px;border:1px solid #ccc;background:#fff;border-radius:4px;padding:2px 6px;cursor:pointer">CSV</button></div><div style="font-size:10px;color:#888;margin:3px 0 4px">행=이동 · 폴리곤=정보</div>';
-    curFeatures.slice().sort(function(a,b){return a.properties.smaa_rank-b.properties.smaa_rank;}).forEach(function(f){var p=f.properties;
-      html+='<div class="cl-legrow" data-cid="'+p.cluster_id+'" onclick="window.__clZoom('+p.cluster_id+')" onmouseenter="window.__clHL('+p.cluster_id+',1)" onmouseleave="window.__clHL('+p.cluster_id+',0)"><i style="background:'+clColor(p.smaa_rank)+'"></i><span style="flex:1"><b>#'+p.smaa_rank+'</b> '+Math.round(p.mw)+'MW · 개인'+p["개인비율_pct"]+'%<br><span style="font-size:9px;color:#888">'+locText(p)+'</span></span></div>';});
-    el.innerHTML=html;
-  }
-  window.__clCSV=function(){
-    var hdr=["순위","cluster_id","MW","면적ha","개인소유%","위치","최근접산단","거리km","산단수요GWh","Pareto층","SMAA1위%"];
-    var rows=curFeatures.slice().sort(function(a,b){return a.properties.smaa_rank-b.properties.smaa_rank;}).map(function(f){var p=f.properties;
-      return [p.smaa_rank,p.cluster_id,Math.round(p.mw),Math.round(p.area_ha),p["개인비율_pct"],locText(p),p.nearest_complex,p.dist_km,Math.round(p.demand_gwh),p.pareto_layer,p.smaa_rank1_pct];});
-    var csv="﻿"+hdr.join(",")+"\n"+rows.map(function(r){return r.map(function(x){return '"'+String(x).replace(/"/g,'""')+'"';}).join(",");}).join("\n");
-    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="gimpo_clusters_"+curScen+".csv";a.click();
-  };
-  function addBadges(){badgeLayer.clearLayers();curFeatures.forEach(function(f){var ly=curLayers[f.properties.cluster_id];if(!ly)return;var c;try{c=ly.getBounds().getCenter();}catch(e){return;}
-    var ic=L.divIcon({className:"",iconSize:[24,24],iconAnchor:[12,12],html:'<div class="cl-badge" style="--c:'+clColor(f.properties.smaa_rank)+'">'+f.properties.smaa_rank+'</div>'});
-    L.marker(c,{icon:ic,interactive:true}).on("click",function(){window.__clZoom(f.properties.cluster_id);}).addTo(badgeLayer);});}
-
-  function addComplexMarkers(){complexLayer.clearLayers();(INFO.complexes||[]).forEach(function(cx){var dem=cx.is_demand_only;var col=dem?"#dc2626":"#7c3aed";var ic=L.divIcon({className:"",iconSize:[16,16],iconAnchor:[8,8],html:'<div style="width:12px;height:12px;background:'+col+';border:2px solid #fff;border-radius:'+(dem?"50%":"2px")+';box-shadow:0 1px 3px rgba(0,0,0,.6)"></div>'});L.marker([cx.lat,cx.lon],{icon:ic,zIndexOffset:500}).bindTooltip(cx.name,{direction:"top"}).bindPopup('<b>'+cx.name+'</b><br>'+(dem?"대형 소비처":"산업단지")+'<br>연 전력수요 '+Math.round(cx.elec_gwh||0).toLocaleString()+' GWh').addTo(complexLayer);});}
-  function loadClusters(scen){
-    curScen=scen; lsSet("cl_scen",scen); clusterLayer.clearLayers(); badgeLayer.clearLayers(); curLayers={}; selectedId=null; dr.classList.remove("open");
-    fetch("gimpo_clusters_"+scen+".geojson").then(function(r){return r.json();}).then(function(gj){
-      curFeatures=gj.features;
-      gj.features.forEach(function(f){var p=f.properties;var ly=L.geoJSON(f,{style:styleFor(p.smaa_rank)});
-        ly.bindPopup(popupHtml(p),{maxWidth:260});
-        ly.on("mouseover",function(){ly.setStyle({weight:5});});ly.on("mouseout",function(){if(selectedId!==p.cluster_id)ly.setStyle(styleFor(p.smaa_rank));});
-        ly.addTo(clusterLayer); curLayers[p.cluster_id]=ly;});
-      if(gj.features.length){try{map.fitBounds(clusterLayer.getBounds(),{padding:[40,40]});}catch(e){}}
-      addBadges(); renderLegend();
-    });
-  }
-  var ctl=L.control({position:"topleft"});
-  ctl.onAdd=function(){
-    var d=L.DomUtil.create("div");
-    d.style.cssText="background:#fff;padding:8px 10px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.3);font-size:12px;line-height:1.6;max-width:240px;";
-    d.innerHTML='<div id="cl-drag" style="font-weight:bold;margin-bottom:4px;cursor:move;user-select:none;display:flex;align-items:center;gap:6px;"><span style="color:#999">⠿</span><span style="flex:1">영농형 특구 후보 클러스터</span><span id="cl-min" style="cursor:pointer;color:#888;padding:0 4px" title="접기/펼치기">▾</span></div>'
-      +'<div id="cl-desc" style="font-size:10px;color:#666;margin-bottom:4px;">앵커(국유·법인) 기반 · 개인 ≤50% · ≥50MW</div>'
-      +'<label style="display:block"><input type="radio" name="cscen" value="S0"> 현행법 (S0)</label>'
-      +'<label style="display:block"><input type="radio" name="cscen" value="S3"> 영농형 특별법 (S3) ★</label>'
-      +'<label style="display:block"><input type="radio" name="cscen" value="SMAX"> 이론최대 (S_MAX)</label>'
-      +'<label style="display:block;margin-top:5px;border-top:1px solid #eee;padding-top:5px;"><input type="checkbox" id="cl-hideparcels"> 기존 필지·반경 숨기기</label>'
-      +'<label style="display:block"><input type="checkbox" id="cl-complexes" checked> 산단 위치 표시 (▣ 산단 / ● 대형소비처)</label>'
-      +'<div id="cl-info" style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;color:#333;"></div>';
-    L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
-    var savedScen=lsGet("cl_scen","S3");
-    d.querySelectorAll('input[name=cscen]').forEach(function(r){ r.checked=(r.value===savedScen); r.addEventListener("change",function(){loadClusters(this.value);});});
-    var hp=d.querySelector("#cl-hideparcels"); hp.checked=window.__hideParcels;
-    hp.addEventListener("change",function(){window.__hideParcels=this.checked; lsSet("cl_hide",this.checked?"1":"0"); if(this.checked){if(parcelLayer)map.removeLayer(parcelLayer); if(radiusCircle)map.removeLayer(radiusCircle);} else if(typeof updateMap==="function"){updateMap();}});
-    // drag
-    (function(){var dragging=false,sx,sy,ox=0,oy=0; var sp=lsGet("cl_pos",""); if(sp){try{var o=JSON.parse(sp);ox=o.x;oy=o.y;d.style.transform="translate("+ox+"px,"+oy+"px)";}catch(e){}}
-      var hd=d.querySelector("#cl-drag");
-      function down(e){var t=(e.touches?e.touches[0]:e);if(e.target&&e.target.id==="cl-min")return;dragging=true;sx=t.clientX;sy=t.clientY;e.preventDefault();}
-      function mv(e){if(!dragging)return;var t=(e.touches?e.touches[0]:e);d.style.transform="translate("+(ox+t.clientX-sx)+"px,"+(oy+t.clientY-sy)+"px)";}
-      function up(e){if(!dragging)return;var t=(e.changedTouches?e.changedTouches[0]:e);ox+=t.clientX-sx;oy+=t.clientY-sy;dragging=false;lsSet("cl_pos",JSON.stringify({x:ox,y:oy}));}
-      if(hd){hd.addEventListener("mousedown",down);hd.addEventListener("touchstart",down,{passive:false});}
-      document.addEventListener("mousemove",mv);document.addEventListener("touchmove",mv,{passive:false});document.addEventListener("mouseup",up);document.addEventListener("touchend",up);
-    })();
-    // collapse
-    (function(){var btn=d.querySelector("#cl-min");var collapsed=(lsGet("cl_collapsed","0")==="1");
-      function apply(){d.querySelectorAll("label, #cl-info, #cl-desc").forEach(function(el){el.style.display=collapsed?"none":"";});btn.textContent=collapsed?"▸":"▾";}
-      if(btn){apply();btn.addEventListener("click",function(ev){ev.stopPropagation();collapsed=!collapsed;lsSet("cl_collapsed",collapsed?"1":"0");apply();});}
-    })();
-    return d;
-  };
-  ctl.addTo(map);
-  addComplexMarkers();
-  (function(){var cm=document.getElementById("cl-complexes"); if(cm){cm.addEventListener("change",function(){if(this.checked)complexLayer.addTo(map);else map.removeLayer(complexLayer);});}})();
-  loadClusters(lsGet("cl_scen","S3"));
-
-  // ═══ 공공·법인 주도형 후보 — 실제 필지 성장 렌더링 (개인상한 슬라이더로 shrink/grow) ═══
-  (function(){
-    if (typeof map === "undefined" || typeof INFO === "undefined") return;
-    if (!document.getElementById("li-panel")) return;
-    var pfx = location.pathname.split("/").pop().replace("_map.html","");
-    var DATA = null, pnuMap = null, _t = null;
-    var DENS = 0.045/1000;                 // MW/m²
-    var liRenderer = L.canvas({ padding: 0.4 });
-    var liLayer = L.layerGroup();
-    function indColor(p){ if (p<=0) return '#15803d'; if (p<=10) return '#4ade80'; if (p<=20) return '#facc15'; if (p<=30) return '#fb923c'; return '#ef4444'; }
-    function fmt(n){ return Math.round(n).toLocaleString(); }
-    function prefixK(c, cap){ var k=-1; for (var j=0;j<c.cum_ind.length;j++){ if (c.cum_ind[j] <= cap) k=j; } return k; }
-    function buildPnu(){ pnuMap={}; (parcels||[]).forEach(function(f){ var pn=f.properties && f.properties.pnu; if (pn) pnuMap[pn]=f; }); }
-    function focusCluster(cid){
-      var c = DATA.clusters[cid]; if (!c) return;
-      if (!pnuMap) buildPnu();
-      var bb=null;
-      for (var j=0;j<c.pnus.length;j++){ var ft=pnuMap[c.pnus[j]]; if (ft){ var ll=L.latLng(ft._lat, ft._lon); bb = bb? bb.extend(ll) : L.latLngBounds(ll, ll); } }
-      if (bb) map.fitBounds(bb,{padding:[40,40]}); else map.flyTo([c.lat,c.lon],14);
-    }
-    function render(){
-      var cap = parseFloat(document.getElementById("li-cap-side").value);
-      var show = document.getElementById("li-show-side").checked;
-      liLayer.clearLayers();
-      if (!DATA) return;
-      if (!parcels || !parcels.length){ setTimeout(render, 400); return; }   // 필지 로드 대기
-      if (!pnuMap) buildPnu();
-      var clusters = DATA.clusters || [];
-      var reqHa = DATA.req_ha, reqM2 = Math.round(reqHa*10000), tgt = DATA.target_mw;
-      var rows = clusters.map(function(c,i){
-        var k = prefixK(c, cap);
-        return { c:c, i:i, k:k, mw:(k>=0?c.cum_mw[k]:0), n:(k+1) };
-      });
-      var nReach = rows.filter(function(r){ return r.mw >= tgt*0.99; }).length;
-      var s = "이 시군 성장클러스터 <b>"+clusters.length+"곳</b> · 상한 <b>"+cap+"%</b>에서 50MW 달성 <b>"+nReach+"곳</b>";
-      s += "<br><span style='font-size:11px;color:#555'>50MW 필요면적 = <b>"+fmt(reqM2)+"㎡ ("+reqHa+"ha)</b> · 영농형 0.045kW/㎡</span>";
-      if (clusters.length===0) s += "<br><span style='color:#999'>이 시군은 ≥50MW 성장 후보가 없습니다.</span>";
-      document.getElementById("li-summary").innerHTML = s;
-
-      var listEl = document.getElementById("li-list");
-      listEl.innerHTML = rows.map(function(r){
-        var c=r.c, col=indColor(c.final_ind_pct);
-        var curM2 = Math.round(r.mw/DENS);
-        var bar = Math.min(100, Math.round(r.mw/tgt*100));
-        var reachTxt = r.mw>=tgt*0.99 ? '<span style="color:#15803d;font-weight:600">50MW 달성</span>' : ('현재 <b>'+Math.round(r.mw)+'MW</b>');
-        return '<div data-cid="'+r.i+'" class="li-card" style="cursor:pointer;background:#fff;border-left:3px solid '+col+';padding:6px 8px;margin-bottom:4px;font-size:11px;border-radius:3px;">' +
-          '<b>#'+(r.i+1)+'</b> '+c.complex+' · 최종 개인 <b style="color:'+col+'">'+c.final_ind_pct+'%</b>' +
-          '<br><span style="color:#444">상한 '+cap+'% → '+reachTxt+' · '+r.n+'필지 · '+fmt(curM2)+'㎡</span>' +
-          '<div style="height:5px;background:#e5e7eb;border-radius:3px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+bar+'%;background:'+col+'"></div></div>' +
-          '</div>';
-      }).join('');
-      listEl.querySelectorAll(".li-card").forEach(function(el){
-        el.addEventListener("click", function(){ focusCluster(parseInt(this.dataset.cid)); });
-      });
-
-      if (show){
-        rows.forEach(function(r){
-          if (r.k < 0) return;
-          var _pts=[];
-          for (var j=0;j<=r.k;j++){
-            var ft = pnuMap[r.c.pnus[j]];
-            if (ft) _pts.push([ft._lon, ft._lat]);
-          }
-          if (!_pts.length) return;
-          var _ip = (r.c.final_ind_pct!=null ? r.c.final_ind_pct : 50);
-          var _col = _ip<=0?'#15803d':_ip<=20?'#4ade80':_ip<=40?'#facc15':'#f59e0b';
-          var _hull = convexHull(_pts).map(function(pt){ return [pt[1], pt[0]]; });
-          var gj = (_hull.length>=3)
-            ? L.polygon(_hull, { renderer: liRenderer, color:_col, weight:2, fillColor:_col, fillOpacity:0.20 })
-            : L.geoJSON({type:"FeatureCollection",features:_pts.map(function(pt){return {type:"Feature",geometry:{type:"Point",coordinates:pt},properties:{}};})}, { renderer: liRenderer, pointToLayer:function(f,ll){return L.circleMarker(ll,{renderer:liRenderer,radius:3,stroke:false,fillColor:_col,fillOpacity:0.6});} });
-          gj.bindTooltip('#'+(r.i+1)+' '+r.c.complex+' · 상한 '+cap+'% · '+Math.round(r.mw)+'MW · '+r.n+'필지', {sticky:true});
-          liLayer.addLayer(gj);
-        });
-        if (!map.hasLayer(liLayer)) map.addLayer(liLayer);
-      } else {
-        map.removeLayer(liLayer);
-      }
-    }
-    function onCap(){
-      document.getElementById("li-cap-val").textContent = document.getElementById("li-cap-side").value + "%";
-      clearTimeout(_t); _t = setTimeout(render, 130);     // 슬라이더 드래그 디바운스
-    }
-    function csv(){
-      if (!DATA) return;
-      var cap = parseFloat(document.getElementById("li-cap-side").value);
-      var hdr = ['시군','클러스터','최종개인pct','최종MW','상한적용MW','상한적용필지수','최근접산단','중심lat','중심lon'];
-      var out = '﻿' + hdr.join(',') + '\n' + (DATA.clusters||[]).map(function(c,i){
-        var k = prefixK(c, cap);
-        return [DATA.sgg, i+1, c.final_ind_pct, c.final_mw, (k>=0?c.cum_mw[k]:0), (k+1), c.complex, c.lat, c.lon]
-          .map(function(x){ return '"' + String(x).replace(/"/g,'""') + '"'; }).join(',');
-      }).join('\n');
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([out], {type:'text/csv'}));
-      a.download = '공공법인주도형_' + (INFO.sgg_name||'sgg') + '_상한' + cap + '.csv';
-      a.click();
-    }
-    fetch(pfx + "_growth_S3.json").then(function(r){ return r.json(); }).then(function(d){ DATA=d; render(); })
-      .catch(function(){ document.getElementById("li-summary").innerHTML = '<span style="color:#b91c1c">성장클러스터 데이터 없음</span>'; });
-    document.getElementById("li-cap-side").addEventListener("input", onCap);
-    document.getElementById("li-show-side").addEventListener("change", render);
-    document.getElementById("li-csv-side").addEventListener("click", csv);
-  })();
-
-})();
+// ── 초기 로드: 기본 시나리오 S3 ──
+loadClusters(curScen).then(renderClusters);
 </script>
 </body>
 </html>
