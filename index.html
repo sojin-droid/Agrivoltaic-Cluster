@@ -48,6 +48,9 @@ h1 { font-size: 22px; margin-bottom: 4px; }
   margin: 6px 0 0; padding: 6px 0;
 }
 .map-legend span.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.map-toggle { font-size: 12px; color: #444; display: flex; align-items: center; gap: 6px; margin: 8px 0 0; }
+.map-legend span.ln { display: inline-block; width: 18px; height: 0; border-top: 3px solid; margin-right: 4px; vertical-align: middle; }
+.map-legend span.ln.dashed { border-top-style: dashed; }
 .badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; font-weight: 600; cursor: help; white-space: nowrap; }
 .badge.gold { background: #fef3c7; color: #92400e; }
 .badge.silver { background: #e5e7eb; color: #374151; }
@@ -74,6 +77,18 @@ h1 { font-size: 22px; margin-bottom: 4px; }
   <span>· 원 크기 = 후보 합계 MW · 클릭 시 시군 상세로 이동</span>
 </div>
 
+<label class="map-toggle">
+  <input type="checkbox" id="chk-match-lines">
+  산단-특구 매칭선(잠재, 시군 단위 — 인근 3개 시군까지)
+</label>
+<div class="map-legend" id="match-legend" style="display:none;">
+  <span><span class="ln" style="border-color:#22c55e;"></span>grid_ok 80% 이상(실선)</span>
+  <span><span class="ln dashed" style="border-color:#f97316;"></span>50~80%(점선)</span>
+  <span><span class="ln dashed" style="border-color:#dc2626;"></span>50% 미만(점선)</span>
+  <span><span class="ln dashed" style="border-color:#999;"></span>판정 대상 없음(점선)</span>
+  <span>· 선 굵기 = 그 시군 후보 합계 MW · 시군 단위 잠재 매칭이며 실제 배전망 경로·용량은 시군 상세에서 클러스터 단위로 확인 필요</span>
+</div>
+
 <div id="agg-panel"></div>
 
 <div id="grid" class="grid"></div>
@@ -81,6 +96,7 @@ h1 { font-size: 22px; margin-bottom: 4px; }
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SGGS = [{"name": "당진시", "sido": "충청남", "url": "chungnam/44270_dangjin/dangjin_map.html", "code": "44270", "lat": 36.9617, "lon": 126.6295}, {"name": "서산시", "sido": "충청남", "url": "chungnam/44210_seosan/seosan_map.html", "code": "44210", "lat": 36.906, "lon": 126.4326}, {"name": "아산시", "sido": "충청남", "url": "chungnam/44200_asan/asan_map.html", "code": "44200", "lat": 36.88, "lon": 126.9129}, {"name": "천안시", "sido": "충청남", "url": "chungnam/44130_cheonan/cheonan_map.html", "code": "44130", "lat": 36.846, "lon": 127.1169}, {"name": "예산군", "sido": "충청남", "url": "chungnam/44810_yesan/yesan_map.html", "code": "44810", "lat": 36.675, "lon": 126.758}, {"name": "홍성군", "sido": "충청남", "url": "chungnam/44800_hongseong/hongseong_map.html", "code": "44800", "lat": 36.6279, "lon": 126.5303}, {"name": "보령시", "sido": "충청남", "url": "chungnam/44180_boryeong/boryeong_map.html", "code": "44180", "lat": 36.33, "lon": 126.58}, {"name": "화성시", "sido": "경기", "url": "gyeonggi/41590_hwaseong/hwaseong_map.html", "code": "41590", "lat": 37.1236, "lon": 126.799}, {"name": "평택시", "sido": "경기", "url": "gyeonggi/41220_pyeongtaek/pyeongtaek_map.html", "code": "41220", "lat": 37.0395, "lon": 126.9766}, {"name": "용인시", "sido": "경기", "url": "gyeonggi/41463_yongin/yongin_map.html", "code": "41463", "lat": 37.1523, "lon": 127.319}, {"name": "시흥시·안산시", "sido": "경기", "url": "gyeonggi/41390_siheung_ansan/siheung_ansan_map.html", "code": "41390", "lat": 37.3264, "lon": 126.7334}, {"name": "이천시", "sido": "경기", "url": "gyeonggi/41500_icheon/icheon_map.html", "code": "41500", "lat": 37.264, "lon": 127.4202}, {"name": "파주시", "sido": "경기", "url": "gyeonggi/41480_paju/paju_map.html", "code": "41480", "lat": 37.7949, "lon": 126.7441}, {"name": "김포시", "sido": "경기", "url": "gyeonggi/41570_gimpo/gimpo_map.html", "code": "41570", "lat": 37.6656, "lon": 126.6112}];
+const DEMAND_COMPLEXES = [{"name": "현대제철 당진제철소 (대형 소비처)", "lat": 36.949, "lon": 126.625, "elec_gwh": 1710, "home_code": "44270"}, {"name": "한화토탈에너지스 대산공장 (대형 소비처)", "lat": 36.997, "lon": 126.347, "elec_gwh": 1810, "home_code": "44210"}, {"name": "HD현대오일뱅크 대산공장 (대형 소비처)", "lat": 36.995, "lon": 126.41, "elec_gwh": 2050, "home_code": "44210"}, {"name": "롯데케미칼 대산공장 (대형 소비처)", "lat": 36.998, "lon": 126.367, "elec_gwh": 880, "home_code": "44210"}, {"name": "LG화학 대산공장 (대형 소비처)", "lat": 36.998, "lon": 126.374, "elec_gwh": 1000, "home_code": "44210"}, {"name": "삼성디스플레이 아산캠퍼스 (대형 소비처)", "lat": 36.814, "lon": 127.063, "elec_gwh": 5760, "home_code": "44200"}, {"name": "삼성디스플레이 천안사업장 (대형 소비처)", "lat": 36.8413, "lon": 127.1173, "elec_gwh": 150, "home_code": "44130"}, {"name": "삼성SDI 천안사업장 (대형 소비처)", "lat": 36.8413, "lon": 127.1198, "elec_gwh": 393, "home_code": "44130"}, {"name": "삼성전자 화성캠퍼스 (대형 소비처)", "lat": 37.2185, "lon": 127.066, "elec_gwh": 8490, "home_code": "41590"}, {"name": "삼성전자 평택캠퍼스 (대형 소비처)", "lat": 37.0356, "lon": 127.0602, "elec_gwh": 11870, "home_code": "41220"}, {"name": "삼성전자 기흥캠퍼스 (대형 소비처)", "lat": 37.2288, "lon": 127.0842, "elec_gwh": 2300, "home_code": "41463"}, {"name": "SK하이닉스 이천캠퍼스 (대형 소비처)", "lat": 37.2501, "lon": 127.4807, "elec_gwh": 3140, "home_code": "41500"}, {"name": "LG디스플레이 파주사업장 (대형 소비처)", "lat": 37.8107, "lon": 126.7672, "elec_gwh": 4300, "home_code": "41480"}];
 let curScen = "S3";
 let SUMMARY = null;
 let KEPCO = null;
@@ -189,10 +205,61 @@ function renderMap(bySgg) {
   }
 }
 
+// ── ②(재설계): 산단(RE100 수요처)-특구 시군 잠재 매칭선. 기본 off.
+// 색=grid_ok_pct 구간(마커와 동일), 실선=80%이상(확인됨) vs 점선=그 외(미확인/부족) —
+// "선이 있다=바로 가능"이 아니라 스타일 자체가 신뢰도를 드러내도록 분리.
+// 시군 단위 근사이며 정밀 매칭은 시군 상세(①의 클러스터별 RE100 매칭)에서 확인.
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad, dLon = (lon2 - lon1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+const matchLineLayer = L.layerGroup();
+function renderMatchLines(bySgg) {
+  matchLineLayer.clearLayers();
+  if (!document.getElementById("chk-match-lines").checked) return;
+  DEMAND_COMPLEXES.forEach(function(d) {
+    if (d.lat == null || d.lon == null) return;
+    const withDist = SGGS.filter(function(s) { return s.lat != null && s.lon != null; })
+      .map(function(s) { return { s: s, km: haversineKm(d.lat, d.lon, s.lat, s.lon) }; })
+      .sort(function(a, b) { return a.km - b.km; })
+      .slice(0, 3);
+    withDist.forEach(function(m) {
+      const agg = bySgg[m.s.code] || { n: 0, total_mw: 0, grid_ok_pct: null, grid_ok_denom: 0 };
+      if (!agg.total_mw) return;  // 이 시나리오에 후보가 없으면 매칭선 의미 없음
+      const color = markerColor(agg);
+      const solid = agg.grid_ok_denom > 0 && agg.grid_ok_pct >= 80;
+      const weight = Math.max(1, Math.min(6, 1 + Math.sqrt(agg.total_mw) * 0.15));
+      L.polyline([[d.lat, d.lon], [m.s.lat, m.s.lon]], {
+        color: color, weight: weight, opacity: 0.6,
+        dashArray: solid ? null : "6,6"
+      }).bindTooltip(
+        d.name + " &harr; " + m.s.name + " (직선 " + m.km.toFixed(0) + "km)<br>" +
+        "이 선은 시군 단위 잠재 매칭이며 실제 배전망 경로·용량은 시군 상세에서 클러스터 단위로 확인 필요",
+        { sticky: true }
+      ).addTo(matchLineLayer);
+    });
+  });
+}
+document.getElementById("chk-match-lines").addEventListener("change", function() {
+  const legend = document.getElementById("match-legend");
+  if (this.checked) {
+    legend.style.display = "flex";
+    matchLineLayer.addTo(map);
+    renderMatchLines(lastBySgg);
+  } else {
+    legend.style.display = "none";
+    map.removeLayer(matchLineLayer);
+  }
+});
+
+let lastBySgg = {};
 function renderGrid() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
   const bySgg = (SUMMARY && SUMMARY[curScen]) || {};
+  lastBySgg = bySgg;
   SGGS.forEach(function(s) {
     const agg = bySgg[s.code] || { n: 0, total_mw: 0, avg_indiv_ratio: 0, grid_ok_pct: null, grid_ok_denom: 0, grid_ok_null: 0 };
     const card = document.createElement("div");
@@ -213,6 +280,7 @@ function renderGrid() {
     });
   });
   renderMap(bySgg);
+  renderMatchLines(bySgg);
   updateAgg(bySgg);
 }
 
