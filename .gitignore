@@ -1,8 +1,9 @@
 # 무거운 원본 필지(geojson)는 GitHub에 올리지 않음 — Supabase(PostGIS)로 이관
 *_parcels.geojson
 
-# 점(point) 빌드 산출물 — build_points.py 로 재생성(로컬 전용, 미커밋)
-*_points.json
+# <시군>_points.json은 build_points.py로 재생성 가능하지만, 필지 점 레이어 토글이
+# 브라우저에서 직접 fetch하는 런타임 데이터라 GitHub Pages 정적 배포엔 필수 —
+# 2026-07-06부로 커밋 대상으로 전환(합계 ~87MB, 시군당 최대 12MB로 100MB 제한 밖).
 
 # 비밀키 (KEPCO 등)
 .env
