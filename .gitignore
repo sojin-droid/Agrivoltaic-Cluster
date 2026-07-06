@@ -37,3 +37,7 @@ dl_dong_index.csv
 # crosswalk.csv/<시군>_dong_boundary.json은 커밋 대상(SGIS 재호출 없이 필요한 런타임 데이터)
 boundary_raw/*.json
 boundary_dong_4326.json
+
+# 한전 빅데이터센터 "산업분류별 전력사용량" 원본 xlsx — SSO 로그인 필요해 스크립트로 재생성
+# 불가(수동 다운로드). build_kepco_usage.py 산출물인 kepco_industrial_usage.json(경량)만 커밋.
+metadata/kepco_usage/*.xlsx

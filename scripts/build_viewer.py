@@ -54,6 +54,7 @@ def build_city_pages(sggs):
         out = (template
                .replace("{{PFX}}", pfx)
                .replace("{{SGG_NAME}}", s["name"])
+               .replace("{{SGG_CODE}}", s["code"])
                .replace("{{CENTER_LAT}}", str(s["lat"]))
                .replace("{{CENTER_LON}}", str(s["lon"]))
                .replace("{{COMPLEXES_JSON}}", json.dumps(complexes_view, ensure_ascii=False)))
@@ -69,8 +70,9 @@ def build_city_pages(sggs):
 def build_index(sggs):
     with open(os.path.join(TEMPLATE_DIR, "index_template.html"), encoding="utf-8") as f:
         template = f.read()
-    # index 카드엔 name/sido/url/code만 필요 — complexes 트림해서 용량 절약
-    sggs_view = [{"name": s["name"], "sido": s["sido"], "url": s["url"], "code": s["code"]} for s in sggs]
+    # index 카드+지도엔 complexes 불필요 — 트림해서 용량 절약. lat/lon은 지도 마커용.
+    sggs_view = [{"name": s["name"], "sido": s["sido"], "url": s["url"], "code": s["code"],
+                  "lat": s["lat"], "lon": s["lon"]} for s in sggs]
     out = template.replace("{{SGGS_JSON}}", json.dumps(sggs_view, ensure_ascii=False))
     with open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8") as f:
         f.write(out)

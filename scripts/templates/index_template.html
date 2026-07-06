@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>경기·충남 영농형 태양광 RE100 특구 후보</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -38,11 +39,25 @@ h1 { font-size: 22px; margin-bottom: 4px; }
 .card-metrics b { color: #1a1a1a; }
 .card a { display: inline-block; margin-top: 8px; font-size: 12px; color: #2c5aa0; text-decoration: none; }
 .card a:hover { text-decoration: underline; }
+.kepco-line { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #ddd; font-size: 11px; color: #555; }
+.kepco-line b { color: #1a1a1a; }
+.kepco-line .note { color: #999; }
+#index-map { width: 100%; height: 440px; border-radius: 8px; margin: 12px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+.map-legend {
+  display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: #555;
+  margin: 6px 0 0; padding: 6px 0;
+}
+.map-legend span.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; font-weight: 600; cursor: help; white-space: nowrap; }
+.badge.gold { background: #fef3c7; color: #92400e; }
+.badge.silver { background: #e5e7eb; color: #374151; }
+.badge.bronze { background: #fee2e2; color: #991b1b; }
 </style>
 </head>
 <body>
 <h1>경기·충남 14개 시군 — 영농형 태양광 RE100 특구 후보</h1>
 <div class="sub">시나리오·개인소유 비율 상한별 특구 후보 클러스터 요약. 상세는 시군 카드에서 진입.</div>
+<div class="sub" id="kepco-footnote" style="display:none;"></div>
 
 <div class="scen-row">
   <div class="scen-btn" data-scen="S0">S0 현행법</div>
@@ -50,14 +65,26 @@ h1 { font-size: 22px; margin-bottom: 4px; }
   <div class="scen-btn" data-scen="SMAX">SMAX 이론최대</div>
 </div>
 
+<div id="index-map"></div>
+<div class="map-legend">
+  <span><span class="dot" style="background:#22c55e;"></span>grid_ok 80% 이상</span>
+  <span><span class="dot" style="background:#f97316;"></span>grid_ok 50~80%</span>
+  <span><span class="dot" style="background:#dc2626;"></span>grid_ok 50% 미만</span>
+  <span><span class="dot" style="background:#999;"></span>판정 대상 없음</span>
+  <span>· 원 크기 = 후보 합계 MW · 클릭 시 시군 상세로 이동</span>
+</div>
+
 <div id="agg-panel"></div>
 
 <div id="grid" class="grid"></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SGGS = {{SGGS_JSON}};
 let curScen = "S3";
 let SUMMARY = null;
+let KEPCO = null;
+let CRITERIA = null;
 const selected = new Set();
 
 // ── 단일 경량 요약(candidate_summary.json) 1회 fetch + 메모리 캐싱(기존 index.html 패턴 재사용) ──
@@ -69,12 +96,97 @@ function loadSummary() {
     .catch(function() { _loaded = true; SUMMARY = {}; return SUMMARY; });
 }
 
+// ── 한전 빅데이터 실측 산업용 전력수요(kepco_industrial_usage.json) 1회 fetch ──
+let _kepcoLoaded = false;
+function loadKepco() {
+  if (_kepcoLoaded) return Promise.resolve(KEPCO);
+  return fetch("kepco_industrial_usage.json").then(function(r) { return r.json(); })
+    .then(function(j) {
+      KEPCO = j; _kepcoLoaded = true;
+      const fn = document.getElementById("kepco-footnote");
+      fn.style.display = "block";
+      fn.textContent = "실측 산업용 전력수요 출처: " + j.source_label + " (" + j.period_label + "). " + j.caveat;
+      return KEPCO;
+    })
+    .catch(function() { _kepcoLoaded = true; KEPCO = null; return KEPCO; });
+}
+
+function kepcoLine(code) {
+  const e = KEPCO && KEPCO.by_code && KEPCO.by_code[code];
+  if (!e) return "";
+  if (e.note) return '<div class="kepco-line">실측 산업용 전력수요 <span class="note">(' + e.note + ')</span></div>';
+  return '<div class="kepco-line">실측 산업용 전력수요(한전) 제조업 <b>' + e.manuf_gwh_year.toFixed(1) +
+         ' GWh</b>/년 · 전체산업 <b>' + e.total_gwh_year.toFixed(1) + ' GWh</b>/년</div>';
+}
+
+// ── 특구 필요도 배지(criteria_scores.json, S3 기준 고정 — 시나리오 전환과 무관) ──
+let _criteriaLoaded = false;
+function loadCriteria() {
+  if (_criteriaLoaded) return Promise.resolve(CRITERIA);
+  return fetch("criteria_scores.json").then(function(r) { return r.json(); })
+    .then(function(j) { CRITERIA = j; _criteriaLoaded = true; return CRITERIA; })
+    .catch(function() { _criteriaLoaded = true; CRITERIA = null; return CRITERIA; });
+}
+const BADGE_LABEL = { gold: "🥇 특구 최우선", silver: "🥈 특구 검토", bronze: "🥉 후순위" };
+function badgeHtml(code) {
+  const e = CRITERIA && CRITERIA.by_code && CRITERIA.by_code[code];
+  if (!e) return "";
+  const labels = CRITERIA.indicator_labels;
+  const lines = Object.keys(e.indicators).map(function(k) {
+    const ind = e.indicators[k];
+    const v = ind.value == null ? "데이터없음" : (typeof ind.value === "number" ? ind.value.toFixed(1) : ind.value);
+    return labels[k] + ": " + v + " (가중치 " + Math.round(ind.weight * 100) + "%)";
+  }).join("\n");
+  const title = "종합점수 " + e.score.toFixed(3) + " · " + e.rank + "위/14 (S3 기준)\n" + lines;
+  return '<span class="badge ' + e.badge + '" title="' + title.replace(/"/g, "&quot;") + '">' + BADGE_LABEL[e.badge] + '</span>';
+}
+
 function gridOkLabel(agg) {
   // grid_ok_pct = true/(true+false), null(판정불가)은 분모 제외(2026-07-04 확정)
   if (agg.grid_ok_denom === 0) return "grid_ok 판정 대상 없음";
   var line = "grid_ok " + agg.grid_ok_pct + "%";
   if (agg.grid_ok_null) line += " · 판정불가 " + agg.grid_ok_null + "건";
   return line;
+}
+
+// ── 전국 지도: 14개 시군 위치에 클러스터 요약 점(현 시나리오 기준) 표시 ──
+const map = L.map("index-map").setView([37.35, 126.85], 9);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors", maxZoom: 19
+}).addTo(map);
+const mapMarkerLayer = L.layerGroup().addTo(map);
+
+function markerColor(agg) {
+  if (agg.grid_ok_denom === 0) return "#999";
+  if (agg.grid_ok_pct >= 80) return "#22c55e";
+  if (agg.grid_ok_pct >= 50) return "#f97316";
+  return "#dc2626";
+}
+
+let boundsFit = false;
+function renderMap(bySgg) {
+  mapMarkerLayer.clearLayers();
+  const latlngs = [];
+  SGGS.forEach(function(s) {
+    if (s.lat == null || s.lon == null) return;
+    latlngs.push([s.lat, s.lon]);
+    const agg = bySgg[s.code] || { n: 0, total_mw: 0, grid_ok_pct: null, grid_ok_denom: 0, grid_ok_null: 0 };
+    const radius = Math.max(8, Math.min(30, 8 + Math.sqrt(agg.total_mw || 0) * 0.6));
+    const marker = L.circleMarker([s.lat, s.lon], {
+      radius: radius, fillColor: markerColor(agg), color: "#1a1a1a",
+      weight: 1, fillOpacity: 0.75
+    }).addTo(mapMarkerLayer);
+    marker.bindTooltip(
+      "<b>" + s.name + "</b><br>후보 " + agg.n + "개 · 합계 " + Math.round(agg.total_mw).toLocaleString() + " MW<br>" +
+      gridOkLabel(agg),
+      { direction: "top", sticky: true }
+    );
+    marker.on("click", function() { window.location.href = s.url; });
+  });
+  if (!boundsFit && latlngs.length) {
+    map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
+    boundsFit = true;
+  }
 }
 
 function renderGrid() {
@@ -86,12 +198,13 @@ function renderGrid() {
     const card = document.createElement("div");
     card.className = "card " + (s.sido.indexOf("충청") >= 0 ? "chungnam" : "gyeonggi");
     card.innerHTML =
-      '<div class="card-head"><label><input type="checkbox" data-code="' + s.code + '"> ' + s.name + '</label></div>' +
+      '<div class="card-head"><label><input type="checkbox" data-code="' + s.code + '"> ' + s.name + '</label>' + badgeHtml(s.code) + '</div>' +
       '<div class="card-metrics">' +
       '후보 <b>' + agg.n + '개</b> · 합계 <b>' + Math.round(agg.total_mw).toLocaleString() + ' MW</b><br>' +
       '평균 개인비율 <b>' + Math.round((agg.avg_indiv_ratio || 0) * 100) + '%</b><br>' +
       gridOkLabel(agg) +
       '</div>' +
+      kepcoLine(s.code) +
       '<a href="' + s.url + '">시군 상세 &rarr;</a>';
     grid.appendChild(card);
     card.querySelector("input[type=checkbox]").addEventListener("change", function(e) {
@@ -99,6 +212,7 @@ function renderGrid() {
       updateAgg(bySgg);
     });
   });
+  renderMap(bySgg);
   updateAgg(bySgg);
 }
 
@@ -130,7 +244,7 @@ document.querySelectorAll(".scen-btn").forEach(function(btn) {
   });
 });
 
-loadSummary().then(renderGrid);
+Promise.all([loadSummary(), loadKepco(), loadCriteria()]).then(renderGrid);
 </script>
 </body>
 </html>

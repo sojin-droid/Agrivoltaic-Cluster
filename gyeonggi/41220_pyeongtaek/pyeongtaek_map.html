@@ -55,6 +55,12 @@ body {
 .card-row b { color: #1a1a1a; }
 #detail-panel h2 { font-size: 13px; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
 .empty-note { font-size: 12px; color: #999; }
+#kepco-usage-panel { font-size: 11px; color: #444; line-height: 1.6; margin: 8px 0; }
+#kepco-usage-panel .note { color: #999; }
+#kepco-usage-panel .caveat { color: #999; font-size: 10px; margin-top: 4px; }
+.unit-icons { margin: 6px 0 2px; line-height: 1; }
+.unit-icons svg { margin-right: 2px; }
+.unit-note { font-size: 10px; color: #666; margin-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -91,8 +97,23 @@ body {
     <input type="checkbox" id="chk-choropleth">
     <label for="chk-choropleth">읍면동 계통 여유용량 코로플레스</label>
   </div>
+  <div class="check-item">
+    <input type="checkbox" id="chk-transformer">
+    <label for="chk-transformer">변압기 아이콘(동별 여유용량, 동 중심점 근사)</label>
+  </div>
 
   <div id="summary-panel" class="summary-panel">불러오는 중&hellip;</div>
+
+  <h2>지번/PNU 검색</h2>
+  <div style="display:flex;gap:4px;">
+    <input type="text" id="addr-search-input" placeholder="예: 석문면 통정리 또는 PNU 19자리"
+           style="flex:1;padding:6px 8px;font-size:12px;border:1px solid #ccc;border-radius:4px;">
+    <button id="addr-search-btn" style="padding:6px 10px;font-size:12px;border:1px solid #2c5aa0;background:#2c5aa0;color:white;border-radius:4px;cursor:pointer;">검색</button>
+  </div>
+  <div id="addr-search-result" style="font-size:11px;margin-top:6px;"></div>
+
+  <h2>실측 산업용 전력수요(한전 빅데이터)</h2>
+  <div id="kepco-usage-panel">불러오는 중&hellip;</div>
 
   <h2>범례 — 후보 폴리곤</h2>
   <div class="legend-box">
@@ -115,11 +136,38 @@ body {
 <script>
 const PFX = "pyeongtaek";
 const SGG_NAME = "평택시";
+const SGG_CODE = "41220";
 const COMPLEXES = [{"name": "송탄일반산업단지", "lat": 37.034008, "lon": 127.060318, "elec_gwh": 268.1, "is_demand_only": false}, {"name": "어연·한산일반산업단지", "lat": 37.0535, "lon": 126.976, "elec_gwh": 278.6, "is_demand_only": false}, {"name": "진위2일반산업단지", "lat": 37.112, "lon": 127.058, "elec_gwh": 320.6, "is_demand_only": false}, {"name": "진위일반산업단지", "lat": 37.086371, "lon": 127.10156, "elec_gwh": 310.1, "is_demand_only": false}, {"name": "평택·오성일반산업단지", "lat": 37.03161, "lon": 126.949167, "elec_gwh": 173.4, "is_demand_only": false}, {"name": "포승2일반산업단지", "lat": 36.978901, "lon": 126.853809, "elec_gwh": 262.8, "is_demand_only": false}, {"name": "포승(BIX)국가산업단지", "lat": 36.980409, "lon": 126.852951, "elec_gwh": 3453.2, "is_demand_only": false}, {"name": "현곡지방산업단지", "lat": 37.039, "lon": 126.961, "elec_gwh": 57.8, "is_demand_only": false}, {"name": "삼성전자 평택캠퍼스 (대형 소비처)", "lat": 37.0356, "lon": 127.0602, "elec_gwh": 11870, "is_demand_only": true}];
 const CENTER = [37.0395, 126.9766];
 
 const OWNER_COLORS = {"국유":"#185FA5","공공":"#378ADD","법인":"#BA7517","개인":"#3B6D11","종중·종교":"#534AB7","기타":"#888"};
 const PANEL_DENSITY = 0.225 * 0.20; // = 0.045 kW/m^2 (CLAUDE.md 고정 공식)
+
+// ── 영농형 태양광 최소 설치 단위: 1유닛 = 1,000㎡ = 45kW(CLAUDE.md 공식 0.045kW/m^2에서 그대로 도출) ──
+const UNIT_KW = 45;
+const UNIT_ICON_SVG =
+  '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">' +
+  '<rect x="1" y="1" width="12" height="7" rx="1" fill="#2c5aa0"/>' +
+  '<line x1="1" y1="4.5" x2="13" y2="4.5" stroke="#dbeafe" stroke-width="0.6"/>' +
+  '<line x1="4.5" y1="1" x2="4.5" y2="8" stroke="#dbeafe" stroke-width="0.6"/>' +
+  '<line x1="8.5" y1="1" x2="8.5" y2="8" stroke="#dbeafe" stroke-width="0.6"/>' +
+  '<path d="M7 8 L7 13 M7 13 Q5.5 12 5 10 M7 13 Q8.5 12 9 10" stroke="#4d7c0f" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+  '</svg>';
+
+function renderUnitIcons(totalMw) {
+  const units = Math.round(totalMw * 1000 / UNIT_KW);
+  if (units <= 0) return '';
+  let scale = 1, shown = units;
+  if (units > 10) {
+    scale = Math.ceil(units / 10);
+    shown = Math.min(10, Math.ceil(units / scale));
+  }
+  let icons = '';
+  for (let i = 0; i < shown; i++) icons += UNIT_ICON_SVG;
+  const scaleNote = scale > 1 ? (' · 아이콘 1개 = ' + scale + '유닛') : '';
+  return '<div class="unit-icons">' + icons + '</div>' +
+         '<div class="unit-note">영농형 최소단위 ' + units.toLocaleString() + '유닛(1유닛=1,000㎡·45kW)' + scaleNote + '</div>';
+}
 const HOURS_PER_YEAR = 8760, CAPACITY_FACTOR = 0.15;
 function fmtMw(mw) { return Math.round(mw).toLocaleString() + " MW"; }
 
@@ -143,6 +191,23 @@ const complexLayer = L.layerGroup().addTo(map);
     .bindPopup("<b>" + cx.name + "</b><br>" + (dem ? "대형 소비처" : "산업단지") +
                "<br>연 전력수요 " + Math.round(cx.elec_gwh || 0).toLocaleString() + " GWh")
     .addTo(complexLayer);
+});
+
+// ── 한전 빅데이터 실측 산업용 전력수요(kepco_industrial_usage.json, 루트 1회 fetch) ──
+fetch("../../kepco_industrial_usage.json").then(function(r) { return r.json(); }).then(function(j) {
+  const box = document.getElementById("kepco-usage-panel");
+  const e = j.by_code && j.by_code[SGG_CODE];
+  if (!e) { box.innerHTML = '<span class="note">데이터 없음</span>'; return; }
+  if (e.note) {
+    box.innerHTML = '<span class="note">' + e.note + '</span>';
+    return;
+  }
+  box.innerHTML =
+    '<div class="card-row"><span>제조업</span><b>' + e.manuf_gwh_year.toFixed(1) + ' GWh/년</b></div>' +
+    '<div class="card-row"><span>전체산업 합계</span><b>' + e.total_gwh_year.toFixed(1) + ' GWh/년</b></div>' +
+    '<div class="caveat">출처: ' + j.source_label + ' (' + j.period_label + '). ' + j.caveat + '</div>';
+}).catch(function() {
+  document.getElementById("kepco-usage-panel").innerHTML = '<span class="note">불러오기 실패</span>';
 });
 
 // ── SVG 해칭 패턴(계통 데이터 일부 없음 표시용) — 최초 1회 주입 ──
@@ -196,6 +261,7 @@ function renderClusters() {
     const poly = L.polygon(latlngs, {
       fillColor: style.fillColor, color: style.color, weight: 1.5, fillOpacity: 0.55
     }).addTo(hullLayer);
+    poly.bindPopup('<div style="font-size:12px;">' + fmtMw(c.total_mw) + '</div>' + renderUnitIcons(c.total_mw));
     poly.on("click", function() { showDetail(c); });
   });
   updateSummary(kept);
@@ -228,6 +294,7 @@ function showDetail(c) {
   let usableLine = fmtMw(c.usable_mw);
   if (c.pool_incomplete) usableLine = "&ge; " + Math.round(c.usable_mw).toLocaleString() + " MW (일부 동 계통 데이터 없음)";
   body.innerHTML =
+    renderUnitIcons(c.total_mw) +
     '<div class="card-row"><span>설비용량</span><b>' + fmtMw(c.total_mw) + '</b></div>' +
     '<div class="card-row"><span>계통 감안 사용가능</span><b>' + usableLine + '</b></div>' +
     '<div class="card-row"><span>연간발전량</span><b>' + c.annual_gwh.toFixed(1) + ' GWh</b></div>' +
@@ -349,6 +416,145 @@ function renderChoroLegend(breaks, values) {
 document.getElementById("chk-choropleth").addEventListener("change", function() {
   if (this.checked) { loadBoundary().then(renderBoundary); }
   else if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; document.getElementById("choropleth-legend").style.display = "none"; }
+});
+
+// ── 변압기 아이콘 레이어(동 중심점 근사, 기본 off) — boundaryData 코로플레스와 fetch/캐시 공유 ──
+function polygonCentroid(p) {
+  const outerRings = p.geometry.type === "Polygon"
+    ? [p.geometry.coordinates[0]]
+    : p.geometry.coordinates.map(function(poly) { return poly[0]; });
+  let ring = outerRings[0];
+  outerRings.forEach(function(r) { if (r.length > ring.length) ring = r; });
+  let sumLon = 0, sumLat = 0;
+  ring.forEach(function(pt) { sumLon += pt[0]; sumLat += pt[1]; });
+  return [sumLat / ring.length, sumLon / ring.length];
+}
+function transformerIconSvg(color) {
+  return '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">' +
+    '<line x1="8" y1="0" x2="8" y2="3" stroke="' + color + '" stroke-width="1.5"/>' +
+    '<circle cx="6" cy="8" r="4" fill="white" fill-opacity="0.6" stroke="' + color + '" stroke-width="1.5"/>' +
+    '<circle cx="10" cy="8" r="4" fill="white" fill-opacity="0.6" stroke="' + color + '" stroke-width="1.5"/>' +
+    '</svg>';
+}
+let transformerLayer = null;
+function renderTransformers() {
+  if (transformerLayer) { map.removeLayer(transformerLayer); transformerLayer = null; }
+  if (!boundaryData) return;
+  const layers = Object.values(boundaryData.polygons).map(function(p) {
+    const latlng = polygonCentroid(p);
+    const color = p.no_pool_data ? "#999" : "#f59e0b";
+    const label = p.no_pool_data ? (p.sgis_name + " · 데이터 없음") : (p.sgis_name + " · " + Math.round(p.pool_kw).toLocaleString() + " kW");
+    const icon = L.divIcon({
+      className: "", iconSize: [140, 16], iconAnchor: [8, 8],
+      html: '<div style="display:flex;align-items:center;gap:2px;white-space:nowrap;">' +
+        transformerIconSvg(color) +
+        '<span style="background:rgba(255,255,255,0.85);border:1px solid #ddd;border-radius:3px;padding:0 3px;font-size:9px;color:' +
+        (p.no_pool_data ? "#999" : "#333") + ';">' + label + '</span></div>'
+    });
+    return L.marker(latlng, { icon: icon, zIndexOffset: 400 });
+  });
+  transformerLayer = L.layerGroup(layers).addTo(map);
+}
+document.getElementById("chk-transformer").addEventListener("change", function() {
+  if (this.checked) { loadBoundary().then(renderTransformers); }
+  else if (transformerLayer) { map.removeLayer(transformerLayer); transformerLayer = null; }
+});
+
+// ── 지번/PNU 검색: PNU 정확일치 우선, 없으면 동/리 이름 부분매칭 → 그 동 중심점 근사 ──
+const SCENARIO_KEYS = {
+  S0: ["needs_S0_clean"],
+  S3: ["needs_S0_clean", "needs_agp_other", "needs_agp_protect", "needs_facility", "needs_agp_core"]
+  // SMAX는 needs_order 15개 전부(별도 처리)
+};
+function isEligible(row, needsOrder, scen) {
+  const bits = row[8];
+  const upperIdx = needsOrder.indexOf("needs_upper_law");
+  if ((bits >> upperIdx) & 1) return false;
+  const keys = SCENARIO_KEYS[scen] || needsOrder;
+  return keys.some(function(k) { return (bits >> needsOrder.indexOf(k)) & 1; });
+}
+function haversineM(lat1, lon1, lat2, lon2) {
+  const R = 6371000, toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad, dLon = (lon2 - lon1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+function dongInfoForPnu(pnu) {
+  if (!boundaryData) return null;
+  const code = pnu.substring(0, 8);
+  const polyId = boundaryData.dong_to_polygon[code];
+  return polyId ? boundaryData.polygons[polyId] : null;
+}
+let searchMarker = null;
+function showSearchResult(row, opts) {
+  const box = document.getElementById("addr-search-result");
+  const dong = dongInfoForPnu(row[0]);
+  const owner = pointsData.owncat[row[5]] || "기타";
+  let html = "";
+  if (opts.approx) {
+    html += '<div style="color:#c2410c;font-weight:600;margin-bottom:4px;">⚠ 근사: 요청 지번을 찾지 못해 최근접 필지(' +
+      opts.dongName + ', 약 ' + Math.round(opts.distM).toLocaleString() + 'm 거리)로 대체</div>';
+  }
+  html += '<div class="card-row"><span>PNU</span><b>' + row[0] + '</b></div>' +
+    '<div class="card-row"><span>면적</span><b>' + Math.round(row[3]).toLocaleString() + ' m²</b></div>' +
+    '<div class="card-row"><span>소유구분</span><b>' + owner + '</b></div>';
+  if (dong) {
+    html += dong.no_pool_data
+      ? '<div class="card-row"><span>소속 동 여유용량</span><b style="color:#999;">데이터 없음</b></div>'
+      : '<div class="card-row"><span>소속 동 여유용량</span><b>' + Math.round(dong.pool_kw).toLocaleString() + ' kW</b></div>';
+  }
+  box.innerHTML = html;
+
+  if (searchMarker) { map.removeLayer(searchMarker); }
+  searchMarker = L.marker([row[1], row[2]], {
+    icon: L.divIcon({
+      className: "", iconSize: [20, 20], iconAnchor: [10, 10],
+      html: '<div style="width:16px;height:16px;border-radius:50%;background:#dc2626;border:3px solid white;box-shadow:0 0 0 2px #dc2626;"></div>'
+    }),
+    zIndexOffset: 1000
+  }).addTo(map);
+  map.setView([row[1], row[2]], 15);
+}
+function runAddrSearch() {
+  const box = document.getElementById("addr-search-result");
+  const input = document.getElementById("addr-search-input").value.trim();
+  if (!input) return;
+  box.innerHTML = "검색 중&hellip;";
+  Promise.all([loadPoints(), loadBoundary()]).then(function() {
+    const exact = pointsData.rows.find(function(r) { return r[0] === input; });
+    if (exact) { showSearchResult(exact, { approx: false }); return; }
+
+    // 동/리 이름 부분매칭: sgis_name 마지막 토큰(읍면동명)이 입력 문자열에 포함되는지 확인,
+    // 가장 긴 토큰이 매칭된 폴리곤을 채택(더 구체적인 이름 우선).
+    let best = null;
+    Object.values(boundaryData.polygons).forEach(function(p) {
+      const tokens = p.sgis_name.split(" ");
+      const dongTok = tokens[tokens.length - 1];
+      if (dongTok && input.indexOf(dongTok) !== -1) {
+        if (!best || dongTok.length > best.tok.length) best = { p: p, tok: dongTok };
+      }
+    });
+    if (!best) {
+      box.innerHTML = '<span style="color:#999;">동/리 이름을 인식할 수 없습니다. 정확한 PNU(19자리) 또는 "OO면/동" 형태로 입력해주세요.</span>';
+      return;
+    }
+    const centroid = polygonCentroid(best.p);
+    const eligible = pointsData.rows.filter(function(r) { return isEligible(r, pointsData.needs_order, curScen); });
+    if (!eligible.length) {
+      box.innerHTML = '<span style="color:#999;">' + best.tok + ' 인근에 현재 시나리오(' + curScen + ') 적격 필지가 없습니다.</span>';
+      return;
+    }
+    let nearest = null, nearestD = Infinity;
+    eligible.forEach(function(r) {
+      const d = haversineM(centroid[0], centroid[1], r[1], r[2]);
+      if (d < nearestD) { nearestD = d; nearest = r; }
+    });
+    showSearchResult(nearest, { approx: true, dongName: best.tok, distM: nearestD });
+  });
+}
+document.getElementById("addr-search-btn").addEventListener("click", runAddrSearch);
+document.getElementById("addr-search-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") runAddrSearch();
 });
 
 // ── 초기 로드: 기본 시나리오 S3 ──
