@@ -61,6 +61,15 @@
       ],
       "note": null
     },
+    "41463": {
+      "total_gwh_year": 9038.55,
+      "manuf_gwh_year": 4398.51,
+      "source_files": [
+        "용인시 (1) 산업분류별 전력사용량_20260706.xlsx",
+        "용인시 (2) 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
     "41500": {
       "total_gwh_year": 5949.91,
       "manuf_gwh_year": 4493.79,
@@ -108,12 +117,6 @@
         "화성시 산업분류별 전력사용량_20260706.xlsx"
       ],
       "note": null
-    },
-    "41463": {
-      "total_gwh_year": null,
-      "manuf_gwh_year": null,
-      "source_files": [],
-      "note": "원본 파일이 전국 집계로 잘못 내려받아져(용인시 단독 행 없음) 재다운로드 대기 중"
     }
   }
 }
