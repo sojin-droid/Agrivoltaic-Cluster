@@ -5,7 +5,8 @@
   growth_pct   산단 생산실적 증감률(전분기대비, %) — 한국산업단지공단 국가산단 CSV.
                국가산단이 없거나(대다수 일반/농공단지 시군) 값이 빈 문자열인 시군은
                "데이터없음" — 나머지 4개 지표로 25%씩 재정규화(0점 처리 아님, 확정 사항).
-  demand_cnt   RE100 대형 수요처 존재(<시군>_complexes.json의 demand:true 개수).
+  demand_cnt   RE100 대형 수요처 존재(<시군>_complexes.json의 is_demand_only 개수 —
+               index.html 매칭선 기능과 동일한 실시간 소스, sggs_data.json 스냅샷 아님).
   grid_ok_pct  계통 여유 비율(candidate_summary.json, S3 기준).
   total_mw     특구 후보 클러스터 합계 MW(candidate_summary.json, S3 기준).
   indiv_ratio  평균 개인소유 비율(candidate_summary.json, S3 기준) — 높을수록 특별법 필요성 큼.
@@ -23,6 +24,33 @@ CSV_PATH = os.path.join(ROOT, "metadata", "한국산업단지공단_국가산업
 SGGS_PATH = os.path.join(ROOT, "scripts", "sggs_data.json")
 SUMMARY_PATH = os.path.join(ROOT, "candidate_summary.json")
 OUT_PATH = os.path.join(ROOT, "criteria_scores.json")
+
+
+def load_complexes(path):
+    """<시군>_complexes.json 스키마 2종 대응(build_viewer.py의 동명 함수와 동일 로직).
+
+    sggs_data.json의 "complexes"(1회 추출해 고정, demand 필드)는 재생성 스크립트가
+    없는 스냅샷이라 demand_cnt에 쓰지 않는다 — index.html의 산단-특구 매칭선
+    (build_viewer.py의 gather_demand_complexes)과 같은 이 실시간 파일을 읽어야
+    두 기능이 같은 시군에 대해 서로 다른 수요처 개수를 보여주는 불일치를 피한다."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, list):
+        out = []
+        for item in data:
+            out.extend(item.get("complexes", []))
+        return out
+    return data.get("complexes", [])
+
+
+def count_demand_complexes(s):
+    rel_path = s["url"]
+    folder = os.path.dirname(os.path.join(ROOT, rel_path))
+    pfx = os.path.basename(rel_path).replace("_map.html", "")
+    complexes_path = os.path.join(folder, f"{pfx}_complexes.json")
+    if not os.path.exists(complexes_path):
+        return 0
+    return sum(1 for c in load_complexes(complexes_path) if c.get("is_demand_only"))
 
 SCENARIO_BASIS = "S3"  # candidate_summary.json 중 어떤 시나리오를 기준으로 쓸지
 
@@ -85,7 +113,7 @@ def main():
     bysgg = summary[SCENARIO_BASIS]
 
     growth = load_growth_by_code()
-    demand_cnt = {s["code"]: sum(1 for c in s.get("complexes", []) if c.get("demand")) for s in sggs}
+    demand_cnt = {s["code"]: count_demand_complexes(s) for s in sggs}
     grid_ok = {s["code"]: bysgg.get(s["code"], {}).get("grid_ok_pct") for s in sggs}
     grid_ok = {c: v for c, v in grid_ok.items() if v is not None}
     total_mw = {s["code"]: bysgg.get(s["code"], {}).get("total_mw", 0) for s in sggs}

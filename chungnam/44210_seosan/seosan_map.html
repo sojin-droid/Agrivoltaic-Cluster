@@ -256,8 +256,19 @@ function hullColor(c) {
   if (c.grid_ok === null) return { fillColor: "url(#hatchGray)", color: "#999" };
   return { fillColor: "#f97316", color: "#c2410c" };
 }
+function resetDetailAndPpa() {
+  // 시나리오/슬라이더 전환으로 후보 집합이 바뀌면 이전에 클릭했던 클러스터가 더 이상
+  // 존재하지 않거나 값이 달라질 수 있어, 상세패널·PPA계산기를 그대로 두면 오래된
+  // 클러스터 수치를 현재 시나리오 것처럼 계속 보여주게 된다 — 항상 리셋.
+  ppaCluster = null;
+  const body = document.getElementById("detail-body");
+  body.className = "empty-note";
+  body.innerHTML = "지도에서 후보 폴리곤을 클릭하세요.";
+  renderPpaPanel();
+}
 function renderClusters() {
   ensureHatchPattern();
+  resetDetailAndPpa();
   hullLayer.clearLayers();
   const data = clusterCache[curScen] || [];
   const t = parseInt(document.getElementById("t-slider").value, 10);
@@ -274,7 +285,12 @@ function renderClusters() {
     const poly = L.polygon(latlngs, {
       fillColor: style.fillColor, color: style.color, weight: 1.5, fillOpacity: 0.55
     }).addTo(hullLayer);
-    poly.bindPopup('<div style="font-size:12px;">' + fmtMw(c.total_mw) + '</div>' + renderUnitIcons(c.total_mw));
+    // 팝업 내용을 함수로 넘겨 실제로 열 때만 생성(Leaflet lazy content) — t-슬라이더
+    // 드래그마다 renderClusters()가 반복 호출되는데, 문자열을 미리 만들어두면 클릭도
+    // 안 한 후보 수백 개의 유닛 아이콘 SVG를 매 tick마다 헛되이 다시 빌드하게 된다.
+    poly.bindPopup(function() {
+      return '<div style="font-size:12px;">' + fmtMw(c.total_mw) + '</div>' + renderUnitIcons(c.total_mw);
+    });
     poly.on("click", function() { showDetail(c); });
   });
   updateSummary(kept);
@@ -468,12 +484,26 @@ document.getElementById("chk-choropleth").addEventListener("change", function() 
 });
 
 // ── 변압기 아이콘 레이어(동 중심점 근사, 기본 off) — boundaryData 코로플레스와 fetch/캐시 공유 ──
+function ringArea(ring) {
+  // 신발끈 공식(평면 근사) — 좌표계가 위경도라 절대 면적 값 자체는 의미 없고,
+  // 여러 조각(섬 등) 중 어느 게 더 큰지 비교하는 용도로만 씀.
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  }
+  return Math.abs(area / 2);
+}
 function polygonCentroid(p) {
   const outerRings = p.geometry.type === "Polygon"
     ? [p.geometry.coordinates[0]]
     : p.geometry.coordinates.map(function(poly) { return poly[0]; });
-  let ring = outerRings[0];
-  outerRings.forEach(function(r) { if (r.length > ring.length) ring = r; });
+  // 꼭짓점 수가 아니라 면적 기준으로 최대 조각을 고른다 — MultiPolygon 중 해안선이
+  // 복잡한 작은 섬이 본토보다 꼭짓점이 많은 경우(예: 보령 오천면) 오판 방지.
+  let ring = outerRings[0], ringA = ringArea(ring);
+  outerRings.forEach(function(r) {
+    const a = ringArea(r);
+    if (a > ringA) { ring = r; ringA = a; }
+  });
   let sumLon = 0, sumLat = 0;
   ring.forEach(function(pt) { sumLon += pt[0]; sumLat += pt[1]; });
   return [sumLat / ring.length, sumLon / ring.length];
@@ -510,6 +540,10 @@ document.getElementById("chk-transformer").addEventListener("change", function()
 });
 
 // ── 지번/PNU 검색: PNU 정확일치 우선, 없으면 동/리 이름 부분매칭 → 그 동 중심점 근사 ──
+// ⚠️ 아래 키 목록은 scripts/build_candidate_clusters.py의 SCEN_KEYS를 손으로 복제한
+// 것 — 동기화 강제 장치 없음. 그쪽 시나리오 정의가 바뀌면(과거 SMAX처럼 확정 후에도
+// 변경된 전례 있음) 여기도 같이 고칠 것. 안 고치면 이 근사 검색만 조용히 다른 필지를
+// 적격으로 판단한다(에러 없음).
 const SCENARIO_KEYS = {
   S0: ["needs_S0_clean"],
   S3: ["needs_S0_clean", "needs_agp_other", "needs_agp_protect", "needs_facility", "needs_agp_core"]

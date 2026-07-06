@@ -150,7 +150,13 @@ function badgeHtml(code) {
   const labels = CRITERIA.indicator_labels;
   const lines = Object.keys(e.indicators).map(function(k) {
     const ind = e.indicators[k];
-    const v = ind.value == null ? "데이터없음" : (typeof ind.value === "number" ? ind.value.toFixed(1) : ind.value);
+    // indiv_ratio는 candidate_summary.json에 0~1 비율로 저장돼 있음(카드 본문의
+    // "평균 개인비율 73%" 표시와 동일 단위로 맞춰 변환) — 나머지 지표는 이미 %/개수/MW.
+    let v;
+    if (ind.value == null) v = "데이터없음";
+    else if (k === "indiv_ratio") v = Math.round(ind.value * 100) + "%";
+    else if (typeof ind.value === "number") v = ind.value.toFixed(1);
+    else v = ind.value;
     return labels[k] + ": " + v + " (가중치 " + Math.round(ind.weight * 100) + "%)";
   }).join("\n");
   const title = "종합점수 " + e.score.toFixed(3) + " · " + e.rank + "위/14 (S3 기준)\n" + lines;
