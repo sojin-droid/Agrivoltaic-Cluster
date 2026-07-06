@@ -42,6 +42,16 @@
 ## 데이터 파이프라인 (변경 후 재생성 필요)
 - `<시군>_parcels.geojson`(원본 폴리곤, 무거움·gitignore) → **`scripts/build_points.py`** →
   `<시군>_points.json`(경량 점, gitignore). 시군 상세 뷰어가 소비. 필지 변경 시 재생성.
+  **⚠️ 알려진 한계(2026-07-06 확인)**: 14개 시군 전부 `<시군>_parcels.geojson`이 그
+  시군의 산업단지·대형소비처 각각으로부터 **반경 10km 이내 필지만** 포함한다(실측:
+  당진·보령·평택·홍성 4개 시군 전부 "필지→최근접 산단 거리" 최대값이 10.0~10.1km로
+  동일 — 우연 아님). 원본 zip 백업(`gyeonggi_chungnam-*.zip`)의 당진 parcels.geojson도
+  동일 필지 수(96,837개)에 속성으로 `distance_to_complex_m`/`nearest_complex`가 이미
+  박혀있어 같은 반경 필터가 생성 단계에서부터 적용된 것으로 확인됨 — 뷰어/파이프라인
+  버그 아니라 **원본 데이터 자체의 수집 범위 제약**. 산단에서 10km 넘게 떨어진 농지는
+  특구 후보 클러스터링(및 이를 쓰는 모든 다운스트림 산출물)에서 처음부터 빠져있다.
+  전체 행정구역 기준 원본은 다른 컴퓨터에 있어 이 세션에서는 교체 불가(2026-07-06
+  기준) — 필지 전체 커버리지가 필요한 분석/의사결정 전에는 이 한계를 감안할 것.
 - 클러스터 폴리곤 `_clusters_<scen>.geojson` → **`scripts/build_cluster_summary.py`** →
   `cluster_summary.json`(~19KB, 전 시군·전 시나리오, **커밋 대상** — 원본 폴리곤이 gitignore라 이게 런타임 데이터). 클러스터 변경 시 재생성.
 - `.gitignore`: `*_parcels.geojson`, `*_points.json`, `cluster_db/*.db`, `.env` 제외. `cluster_summary.json`은 커밋.
