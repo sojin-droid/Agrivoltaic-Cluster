@@ -130,6 +130,19 @@ body {
 <div id="detail-panel">
   <h2>후보 상세</h2>
   <div id="detail-body" class="empty-note">지도에서 후보 폴리곤을 클릭하세요.</div>
+
+  <h2>PPA 수익성 계산기</h2>
+  <div style="display:flex;gap:6px;margin-bottom:6px;">
+    <select id="ppa-life" style="flex:1;font-size:12px;padding:4px;">
+      <option value="Base">Base(8년)</option>
+      <option value="Reform1">Reform1(20년)</option>
+      <option value="Reform2">Reform2(23년)</option>
+    </select>
+    <label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;">
+      <input type="checkbox" id="ppa-rec"> REC 포함
+    </label>
+  </div>
+  <div id="ppa-result" class="empty-note">후보를 클릭하면 계산됩니다.</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -289,6 +302,39 @@ function updateSummary(kept) {
     '<div class="basis">기준: ' + curScen + ' · 개인비율 상한 ' + t + '%' + (document.getElementById("chk-min5").checked ? ' · 5MW 이상' : '') + '</div>';
 }
 
+// ── ① 인근 RE100 대형 수요처 매칭(직선거리 기반, 실제 계통 경로 아님) ──
+function clusterCentroid(c) {
+  let sumLon = 0, sumLat = 0;
+  c.hull.forEach(function(p) { sumLon += p[0]; sumLat += p[1]; });
+  return [sumLat / c.hull.length, sumLon / c.hull.length];
+}
+function re100MatchHtml(c) {
+  const demands = (COMPLEXES || []).filter(function(cx) { return cx.is_demand_only; });
+  if (!demands.length) {
+    return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;font-size:11px;color:#999;">인근 RE100 대형 수요처 없음</div>';
+  }
+  const centroid = clusterCentroid(c);
+  let best = null, bestD = Infinity;
+  demands.forEach(function(cx) {
+    const d = haversineM(centroid[0], centroid[1], cx.lat, cx.lon);
+    if (d < bestD) { bestD = d; best = cx; }
+  });
+  const hasElec = best.elec_gwh != null && best.elec_gwh > 0;
+  let coverageLine = "수요 정보 없음";
+  if (hasElec) {
+    const pct = c.annual_gwh / best.elec_gwh * 100;
+    coverageLine = pct > 100
+      ? "수요 초과(잉여 판매 가능) · " + Math.round(pct) + "%"
+      : Math.round(pct) + "% 충당 가능";
+  }
+  return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;font-size:11px;color:#444;">' +
+    '<b>인근 RE100 수요처:</b> ' + best.name + ' (직선거리 ' + (bestD / 1000).toFixed(1) + 'km)<br>' +
+    '연 발전량 ' + c.annual_gwh.toFixed(1) + ' GWh &rarr; 수요 ' + (hasElec ? Math.round(best.elec_gwh).toLocaleString() : "?") +
+    ' GWh의 ' + coverageLine +
+    '<div style="color:#999;font-size:10px;margin-top:2px;">※ 직선거리(실제 계통 경로 아님)</div></div>';
+}
+
+let ppaCluster = null;
 function showDetail(c) {
   const body = document.getElementById("detail-body");
   let usableLine = fmtMw(c.usable_mw);
@@ -302,7 +348,10 @@ function showDetail(c) {
     '<div class="card-row"><span>필지 수</span><b>' + c.n.toLocaleString() + '</b></div>' +
     '<div class="card-row"><span>계통 잔여 여유</span><b>' + Math.round(c.grid_margin_kw).toLocaleString() + ' kW</b></div>' +
     '<div class="card-row"><span>분할 방식</span><b>' + (c.split_method === "region_grow" ? "영역성장 분할" : "단일") + '</b></div>' +
-    '<div style="margin-top:8px;font-size:11px;color:#666;">소속 동: ' + c.dongs.join(", ") + '</div>';
+    '<div style="margin-top:8px;font-size:11px;color:#666;">소속 동: ' + c.dongs.join(", ") + '</div>' +
+    re100MatchHtml(c);
+  ppaCluster = c;
+  renderPpaPanel();
 }
 
 // ── 시나리오 버튼 ──
@@ -556,6 +605,108 @@ document.getElementById("addr-search-btn").addEventListener("click", runAddrSear
 document.getElementById("addr-search-input").addEventListener("keydown", function(e) {
   if (e.key === "Enter") runAddrSearch();
 });
+
+// ── ③ PPA 수익성 계산기: scripts/agrivoltaic_economics.py 모델을 JS로 이식(클러스터별 즉석계산).
+// 기존 발전공식(MW/GWh)은 c.total_mw/c.annual_gwh를 입력값으로만 사용 — 여기서 재정의하지 않음.
+// 상수 조정은 이 CONFIG 블록만 고치면 됨. 출처: 정책시사점_v2 §6.
+const PPA_CONFIG = {
+  SMP: 118.54,          // 원/kWh — 기준시점: 2026년 EPSIS(전력거래소) 기준, 이후 시장가 변동 미반영
+  PPA_MULT: 1.15,       // PPA 단가 = SMP × 1.15
+  REC_PRICE: 71500,     // 원/REC(1REC=1MWh)
+  REC_WEIGHT: 1.0,      // 영농형 REC 가중치 — 가정치(정식 가중치 미확정, 상향 논의 중)
+  CAPEX_PER_MW: 2.0e9,  // 원/MW — 전국 단일값(시군별 계통연계 공사비 편차 미반영)
+  OPEX_RATE: 0.05,      // 매출 대비 운영비 — 전국 단일값
+  EQUITY: 0.30, DEBT: 0.70, RATE: 0.04, LOAN_TERM: 20,
+  DISCOUNT: 0.06, DEGRADATION: 0.005
+};
+const PPA_LIFE_OPTIONS = { Base: 8, Reform1: 20, Reform2: 23 };
+function ppaAnnuity(principal, rate, n) {
+  if (rate === 0) return principal / n;
+  return principal * rate / (1 - Math.pow(1 + rate, -n));
+}
+function ppaAnnualRevenue(genMwh, withRec) {
+  let rev = genMwh * PPA_CONFIG.SMP * PPA_CONFIG.PPA_MULT * 1000;
+  if (withRec) rev += genMwh * PPA_CONFIG.REC_WEIGHT * PPA_CONFIG.REC_PRICE;
+  return rev;
+}
+function ppaGenForYear(year1Mwh, year) {
+  return year1Mwh * Math.pow(1 - PPA_CONFIG.DEGRADATION, year - 1);
+}
+function ppaProjectCashflows(mw, year1Mwh, life, withRec) {
+  const flows = [-PPA_CONFIG.CAPEX_PER_MW * mw];
+  for (let y = 1; y <= life; y++) {
+    const rev = ppaAnnualRevenue(ppaGenForYear(year1Mwh, y), withRec);
+    flows.push(rev - rev * PPA_CONFIG.OPEX_RATE);
+  }
+  return flows;
+}
+function ppaEquityCashflows(mw, year1Mwh, life, withRec) {
+  const capex = PPA_CONFIG.CAPEX_PER_MW * mw;
+  const debt0 = capex * PPA_CONFIG.DEBT;
+  const term = Math.min(PPA_CONFIG.LOAN_TERM, life);
+  const pay = ppaAnnuity(debt0, PPA_CONFIG.RATE, term);
+  let balance = debt0;
+  const flows = [-capex * PPA_CONFIG.EQUITY];
+  for (let y = 1; y <= life; y++) {
+    const rev = ppaAnnualRevenue(ppaGenForYear(year1Mwh, y), withRec);
+    const opex = rev * PPA_CONFIG.OPEX_RATE;
+    let debtService = 0;
+    if (y <= term && balance > 1) {
+      const interest = balance * PPA_CONFIG.RATE;
+      const principalPaid = Math.min(pay - interest, balance);
+      balance -= principalPaid;
+      debtService = interest + principalPaid;
+    }
+    flows.push(rev - opex - debtService);
+  }
+  return flows;
+}
+function ppaNpv(flows, rate) {
+  return flows.reduce(function(sum, cf, t) { return sum + cf / Math.pow(1 + rate, t); }, 0);
+}
+function ppaIrr(flows) {
+  let lo = -0.95, hi = 1.0, fLo = ppaNpv(flows, lo), fHi = ppaNpv(flows, hi);
+  if (fLo * fHi > 0) return null;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2, fMid = ppaNpv(flows, mid);
+    if (Math.abs(fMid) < 1e-7) return mid;
+    if (fLo * fMid < 0) { hi = mid; fHi = fMid; } else { lo = mid; fLo = fMid; }
+  }
+  return (lo + hi) / 2;
+}
+function ppaPaybackYear(flows) {
+  let cum = 0;
+  for (let t = 0; t < flows.length; t++) {
+    cum += flows[t] / Math.pow(1 + PPA_CONFIG.DISCOUNT, t);
+    if (t > 0 && cum >= 0) return t;
+  }
+  return null;
+}
+function renderPpaPanel() {
+  const box = document.getElementById("ppa-result");
+  if (!ppaCluster) { box.innerHTML = "후보를 클릭하면 계산됩니다."; return; }
+  const life = PPA_LIFE_OPTIONS[document.getElementById("ppa-life").value];
+  const withRec = document.getElementById("ppa-rec").checked;
+  const mw = ppaCluster.total_mw;
+  const year1Mwh = ppaCluster.annual_gwh * 1000; // 기존 발전공식(GWh) 결과를 그대로 입력값으로 사용
+  const eqFlows = ppaEquityCashflows(mw, year1Mwh, life, withRec);
+  const prFlows = ppaProjectCashflows(mw, year1Mwh, life, withRec);
+  const eqIrr = ppaIrr(eqFlows), prIrr = ppaIrr(prFlows);
+  const npvEq = ppaNpv(eqFlows, PPA_CONFIG.DISCOUNT);
+  const pb = ppaPaybackYear(eqFlows);
+  box.innerHTML =
+    '<div class="card-row"><span>자기자본 IRR</span><b>' + (eqIrr == null ? "&mdash;" : (eqIrr * 100).toFixed(1) + "%") + '</b></div>' +
+    '<div class="card-row"><span>프로젝트 IRR</span><b>' + (prIrr == null ? "&mdash;" : (prIrr * 100).toFixed(1) + "%") + '</b></div>' +
+    '<div class="card-row"><span>자기자본 NPV</span><b>' + Math.round(npvEq / 1e8).toLocaleString() + '억원</b></div>' +
+    '<div class="card-row"><span>할인회수기간</span><b>' + (pb == null ? "미회수(사업기간 내)" : (pb + "년")) + '</b></div>' +
+    '<div style="font-size:10px;color:#999;margin-top:6px;line-height:1.5;">' +
+    'SMP ' + PPA_CONFIG.SMP + '원/kWh(기준시점 2026 EPSIS) · PPA=SMP&times;' + PPA_CONFIG.PPA_MULT +
+    ' · REC ' + PPA_CONFIG.REC_PRICE.toLocaleString() + '원&times;가중치' + PPA_CONFIG.REC_WEIGHT + '(가정 — 영농형 REC 가중치 미확정)<br>' +
+    'CAPEX ' + (PPA_CONFIG.CAPEX_PER_MW / 1e9).toFixed(1) + '십억원/MW · OPEX 매출' + Math.round(PPA_CONFIG.OPEX_RATE * 100) +
+    '% — 전국 단일값(시군별 계통연계 공사비 등 편차 미반영)</div>';
+}
+document.getElementById("ppa-life").addEventListener("change", renderPpaPanel);
+document.getElementById("ppa-rec").addEventListener("change", renderPpaPanel);
 
 // ── 초기 로드: 기본 시나리오 S3 ──
 loadClusters(curScen).then(renderClusters);
