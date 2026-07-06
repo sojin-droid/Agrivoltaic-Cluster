@@ -42,6 +42,16 @@
 ## 데이터 파이프라인 (변경 후 재생성 필요)
 - `<시군>_parcels.geojson`(원본 폴리곤, 무거움·gitignore) → **`scripts/build_points.py`** →
   `<시군>_points.json`(경량 점, gitignore). 시군 상세 뷰어가 소비. 필지 변경 시 재생성.
+  **⚠️ 알려진 한계(2026-07-06 확인)**: 14개 시군 전부 `<시군>_parcels.geojson`이 그
+  시군의 산업단지·대형소비처 각각으로부터 **반경 10km 이내 필지만** 포함한다(실측:
+  당진·보령·평택·홍성 4개 시군 전부 "필지→최근접 산단 거리" 최대값이 10.0~10.1km로
+  동일 — 우연 아님). 원본 zip 백업(`gyeonggi_chungnam-*.zip`)의 당진 parcels.geojson도
+  동일 필지 수(96,837개)에 속성으로 `distance_to_complex_m`/`nearest_complex`가 이미
+  박혀있어 같은 반경 필터가 생성 단계에서부터 적용된 것으로 확인됨 — 뷰어/파이프라인
+  버그 아니라 **원본 데이터 자체의 수집 범위 제약**. 산단에서 10km 넘게 떨어진 농지는
+  특구 후보 클러스터링(및 이를 쓰는 모든 다운스트림 산출물)에서 처음부터 빠져있다.
+  전체 행정구역 기준 원본은 다른 컴퓨터에 있어 이 세션에서는 교체 불가(2026-07-06
+  기준) — 필지 전체 커버리지가 필요한 분석/의사결정 전에는 이 한계를 감안할 것.
 - 클러스터 폴리곤 `_clusters_<scen>.geojson` → **`scripts/build_cluster_summary.py`** →
   `cluster_summary.json`(~19KB, 전 시군·전 시나리오, **커밋 대상** — 원본 폴리곤이 gitignore라 이게 런타임 데이터). 클러스터 변경 시 재생성.
 - `.gitignore`: `*_parcels.geojson`, `*_points.json`, `cluster_db/*.db`, `.env` 제외. `cluster_summary.json`은 커밋.
@@ -145,15 +155,60 @@
   3. `scripts/build_viewer.py` — `scripts/templates/{viewer,index}_template.html` +
      `scripts/sggs_data.json`(+ 시군별 `<시군>_complexes.json`)에서 14개
      `<시군>_map.html` + `index.html`을 매번 전체 재생성. 플레이스홀더
-     `{{PFX}}/{{SGG_NAME}}/{{CENTER_LAT}}/{{CENTER_LON}}/{{COMPLEXES_JSON}}`
-     (시군 상세), `{{SGGS_JSON}}`(index) 문자열 치환뿐 — 로직 분기 없음.
+     `{{PFX}}/{{SGG_NAME}}/{{SGG_CODE}}/{{CENTER_LAT}}/{{CENTER_LON}}/{{COMPLEXES_JSON}}`
+     (시군 상세), `{{SGGS_JSON}}`(index, `lat`/`lon` 포함 — 전국 지도 마커용) 문자열
+     치환뿐 — 로직 분기 없음.
   4. 시군 상세 페이지의 fetch는 전부 **lazy + 메모리 캐싱**: 시나리오 버튼 클릭
      시점에 그 시나리오의 `candidate_clusters_{scen}.json`만 가져오고(세션당 최대
-     3회), 필지 점 레이어·코로플레스 토글도 켤 때 처음 한 번만 각각
-     `<시군>_points.json`/`<시군>_dong_boundary.json`을 가져온다.
+     3회), 필지 점 레이어·코로플레스·변압기 아이콘 토글도 켤 때 처음 한 번만 각각
+     `<시군>_points.json`/`<시군>_dong_boundary.json`을 가져온다(코로플레스와 변압기
+     아이콘은 `boundaryData` 캐시를 공유).
   5. 코로플레스 색 구간은 **그 시군 데이터만으로 매번 재계산되는 5분위**라
      시군 간 색 비교 불가 — 범례에 실제 kW 경계값과 "본 시군 내 상대 구간" 문구를
      항상 같이 표시한다(구현 시 확정, 오독 방지 목적).
+  6. **2026-07-06 추가**: index.html에 Leaflet 전국 지도 복원(14개 시군 원형 마커,
+     반경=후보 합계MW, 색=grid_ok_pct, 클릭 시 시군 상세 이동). 영농형 최소단위
+     1유닛=1,000㎡=45kW(기존 0.045kW/m² 공식에서 그대로 도출) 정의해 클러스터
+     팝업/상세카드에 SVG 아이콘 반복 표시(10개 초과 시 "아이콘 1개=N유닛" 스케일).
+     시군 상세에 지번/PNU 검색 추가 — PNU 정확일치면 그대로, 아니면 입력 문자열에
+     `<시군>_dong_boundary.json`의 `sgis_name` 마지막 토큰(읍면동명)이 포함되는지
+     부분매칭해 그 동 중심점(centroid, 외곽 링 정점 평균)에서 최근접 적격 필지를
+     찾고 "⚠ 근사" 라벨 명시(거리 m 포함).
+  7. **2026-07-06 추가(PPA 아이디어 ①③)**: 클러스터 상세카드에 인근 RE100 대형
+     수요처(`COMPLEXES`의 `is_demand_only`) 최단 직선거리 매칭 — 충당률(연간발전량/
+     수요 elec_gwh)이 100% 넘으면 "수요 초과(잉여 판매 가능)"로 표기, "직선거리(실제
+     계통 경로 아님)" 각주 필수(과장 방지). PPA 수익성 계산기는
+     `scripts/agrivoltaic_economics.py`(IRR/NPV/할인회수기간, 원리금균등 상환 모델)를
+     JS로 이식해 클러스터의 실제 `total_mw`/`annual_gwh`로 즉석 계산 — 사전계산 JSON
+     아님(클러스터마다 별도 산출 없이 그 자리에서 재계산). 기존 발전공식(MW/GWh)은
+     `annual_gwh`를 연차별 출력저하(0.5%/년) 적용의 1년차 입력값으로만 쓰고 재정의하지
+     않음. 상수는 `PPA_CONFIG` 블록에 모음 — SMP 118.54원/kWh(기준시점 2026 EPSIS),
+     REC 가중치 1.0(영농형 정식 가중치 미확정 가정), CAPEX/OPEX는 전국 단일값(시군별
+     편차 미반영) 각주 상시 표시. 사업기간 Base(8)/Reform1(20)/Reform2(23)는 지도의
+     S0/S3/SMAX(필지 적격성) 시나리오와 무관한 별도 축(정책시사점_v2 §6 사업기간 가정).
+
+- **실측 산업용 전력수요 파이프라인**(`scripts/build_kepco_usage.py`, 2026-07-06): 한전
+  빅데이터센터(bigdata.kepco.co.kr) "산업분류별 전력사용량"은 오픈API가 없어(SSO 로그인
+  필요) `metadata/kepco_usage/*.xlsx`로 수동 다운로드(2023.01~2025.12 3개년 누적,
+  gitignore — 로그인 없이는 스크립트로 재생성 불가). 시군명 첫 토큰으로 카드 코드 매핑,
+  안산(1)/(2)는 총사용량이 서로 달라(6.4B vs 14.2B kWh) 별개 데이터로 판단해 시흥시와
+  합산 후 41390에 매핑. 3개년 합계를 3으로 나눠 연평균 GWh 환산(제조업 단독/전체산업
+  합계 각각) → `kepco_industrial_usage.json`(루트, 커밋 대상). 용인시 파일은 헤더가
+  "전체(시도)/전체(시군구)"인 전국 집계 오export로 확인돼(용인시 단독 행 없음) 제외,
+  재다운로드 대기 중(`note` 필드로 표시). 뷰어에는 시군구 전체업종 합산치라 산단 단위
+  추정 소비량과 1:1 비교 불가라는 각주와 함께 병기.
+- **특구 필요도 criteria 점수화**(`scripts/build_criteria_scores.py`, 2026-07-06): 5개
+  지표(산단 생산실적 증감률·RE100 대형 수요처 수·grid_ok_pct·후보 클러스터 합계
+  MW·평균 개인소유 비율, 전부 candidate_summary.json의 **S3 고정 기준**)를 시군별
+  min-max 정규화 후 가중합. 가중치는 스크립트 상단 `WEIGHTS`/`RENORM_WITHOUT_GROWTH`
+  상수로 조정(기본 균등 20%씩). 국가산단 생산실적은
+  `metadata/한국산업단지공단_국가산업단지 산업동향정보_생산실적_20260331.csv`(cp949,
+  커밋 대상)에 있는 시군만 유효(석문→당진, 아산, 파주탄현→파주, 시화/시화MTV/반월→
+  시흥·안산 4개 카드만 실측치 존재 — 용인첨단시스템반도체/송산그린시티는 행은 있지만
+  아직 가동실적 없어 값이 빈 문자열이라 데이터없음과 동일 취급). 데이터 없는 10개
+  시군은 이 지표를 빼고 나머지 4개를 25%씩으로 재정규화(0점 처리 아님). 결과
+  `criteria_scores.json`(루트, 커밋 대상)을 상위 1/3=gold/중위 1/3=silver/하위=bronze
+  배지로 index 카드에 표시, hover 시 지표별 breakdown 툴팁.
 
 ## 도메인 메모
 - **pnu(19자리)**: `[:2]`=시도, `[2:5]`=시군구, `[5:8]`=읍면동, `[8:10]`=리. (예 당진 = 44270)

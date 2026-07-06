@@ -54,6 +54,7 @@ def build_city_pages(sggs):
         out = (template
                .replace("{{PFX}}", pfx)
                .replace("{{SGG_NAME}}", s["name"])
+               .replace("{{SGG_CODE}}", s["code"])
                .replace("{{CENTER_LAT}}", str(s["lat"]))
                .replace("{{CENTER_LON}}", str(s["lon"]))
                .replace("{{COMPLEXES_JSON}}", json.dumps(complexes_view, ensure_ascii=False)))
@@ -66,14 +67,38 @@ def build_city_pages(sggs):
     return n_ok
 
 
+def gather_demand_complexes(sggs):
+    """②(산단-특구 매칭선)용: 14개 시군 <시군>_complexes.json 전체에서 is_demand_only만
+    모아 소속 시군 코드와 함께 반환 — 자기 시군 외 인근 시군과도 매칭선을 그리기 위해
+    index 레벨에서 전체를 한 번에 들고 있는다(개별 크기가 작아 무리 없음)."""
+    out = []
+    for s in sggs:
+        rel_path = s["url"]
+        folder = os.path.dirname(os.path.join(ROOT, rel_path))
+        pfx = os.path.basename(rel_path).replace("_map.html", "")
+        complexes_path = os.path.join(folder, f"{pfx}_complexes.json")
+        if not os.path.exists(complexes_path):
+            continue
+        for c in load_complexes(complexes_path):
+            if c.get("is_demand_only"):
+                out.append({"name": c.get("name"), "lat": c.get("lat"), "lon": c.get("lon"),
+                            "elec_gwh": c.get("elec_gwh"), "home_code": s["code"]})
+    return out
+
+
 def build_index(sggs):
     with open(os.path.join(TEMPLATE_DIR, "index_template.html"), encoding="utf-8") as f:
         template = f.read()
-    # index 카드엔 name/sido/url/code만 필요 — complexes 트림해서 용량 절약
-    sggs_view = [{"name": s["name"], "sido": s["sido"], "url": s["url"], "code": s["code"]} for s in sggs]
-    out = template.replace("{{SGGS_JSON}}", json.dumps(sggs_view, ensure_ascii=False))
+    # index 카드+지도엔 complexes 불필요 — 트림해서 용량 절약. lat/lon은 지도 마커용.
+    sggs_view = [{"name": s["name"], "sido": s["sido"], "url": s["url"], "code": s["code"],
+                  "lat": s["lat"], "lon": s["lon"]} for s in sggs]
+    demands = gather_demand_complexes(sggs)
+    out = (template
+           .replace("{{SGGS_JSON}}", json.dumps(sggs_view, ensure_ascii=False))
+           .replace("{{DEMAND_COMPLEXES_JSON}}", json.dumps(demands, ensure_ascii=False)))
     with open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8") as f:
         f.write(out)
+    print(f"  RE100 대형 수요처 {len(demands)}개(매칭선용)")
 
 
 def main():

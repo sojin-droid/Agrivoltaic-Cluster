@@ -1,0 +1,122 @@
+{
+  "period_label": "2023.01–2025.12(3개년 누적치의 연평균)",
+  "source_label": "한국전력공사 빅데이터센터(bigdata.kepco.co.kr), 산업분류별 전력사용량 2023–2025 연평균",
+  "caveat": "시군구 전체 업종(KSIC) 합산치로, 본 뷰어의 산단 단위 추정 소비량과 1:1 비교 대상이 아님",
+  "by_code": {
+    "41570": {
+      "total_gwh_year": 3502.94,
+      "manuf_gwh_year": 2036.84,
+      "source_files": [
+        "김포시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "44270": {
+      "total_gwh_year": 6362.56,
+      "manuf_gwh_year": 5415.8,
+      "source_files": [
+        "당진시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "44180": {
+      "total_gwh_year": 1286.88,
+      "manuf_gwh_year": 457.97,
+      "source_files": [
+        "보령시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "44210": {
+      "total_gwh_year": 9311.22,
+      "manuf_gwh_year": 8401.08,
+      "source_files": [
+        "서산시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "41390": {
+      "total_gwh_year": 10938.28,
+      "manuf_gwh_year": 7821.6,
+      "source_files": [
+        "시흥시 산업분류별 전력사용량_20260706.xlsx",
+        "안산시 (1) 산업분류별 전력사용량_20260706.xlsx",
+        "안산시 (2) 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "44200": {
+      "total_gwh_year": 12352.13,
+      "manuf_gwh_year": 11008.86,
+      "source_files": [
+        "아산시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "44810": {
+      "total_gwh_year": 1212.6,
+      "manuf_gwh_year": 750.24,
+      "source_files": [
+        "예산군 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "41463": {
+      "total_gwh_year": 9038.55,
+      "manuf_gwh_year": 4398.51,
+      "source_files": [
+        "용인시 (1) 산업분류별 전력사용량_20260706.xlsx",
+        "용인시 (2) 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "41500": {
+      "total_gwh_year": 5949.91,
+      "manuf_gwh_year": 4493.79,
+      "source_files": [
+        "이천시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "44130": {
+      "total_gwh_year": 2302.8,
+      "manuf_gwh_year": 1612.01,
+      "source_files": [
+        "천안시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "41480": {
+      "total_gwh_year": 8057.21,
+      "manuf_gwh_year": 6238.33,
+      "source_files": [
+        "파주시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "41220": {
+      "total_gwh_year": 20248.73,
+      "manuf_gwh_year": 17082.25,
+      "source_files": [
+        "평택시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "44800": {
+      "total_gwh_year": 885.82,
+      "manuf_gwh_year": 302.28,
+      "source_files": [
+        "홍성군 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    },
+    "41590": {
+      "total_gwh_year": 19377.66,
+      "manuf_gwh_year": 15518.53,
+      "source_files": [
+        "화성시 산업분류별 전력사용량_20260706.xlsx"
+      ],
+      "note": null
+    }
+  }
+}
