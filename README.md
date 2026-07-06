@@ -1,61 +1,64 @@
-# RE100 영농형 태양광 산업단지 입지 분석
+# 경기·충남 영농형 태양광 RE100 특구 후보
 
-## 실행 방법
+## ▶ 바로 열기
+**https://sojin-droid.github.io/Agrivoltaic-Cluster/**
+
+설치·다운로드 없이 크롬(또는 엣지)에서 링크만 열면 바로 지도가 뜹니다.
+
+## 무엇을 볼 수 있나
+- **전국 지도**(위 링크 첫 화면): 14개 시군의 특구 후보 클러스터 요약을 지도 위 원형
+  마커로, 특구 필요도를 🥇🥈🥉 배지로 표시. "산단-특구 매칭선" 토글을 켜면 RE100
+  대형 수요처와 인근 시군을 계통 여유 상태(실선/점선)로 이어서 보여줌.
+- **시군 상세**(지도 마커나 카드 클릭): 시나리오(S0 현행법 / S3 특별법 / SMAX 이론최대)
+  별 특구 후보 클러스터 폴리곤, 개인소유 비율 상한 슬라이더, 읍면동 계통 여유용량
+  코로플레스, 변압기 아이콘, 필지 점 레이어, 지번/PNU 검색.
+- **클러스터 클릭 시**: 설비용량·연간발전량·계통 여유, 영농형 최소단위(1유닛=1,000㎡=
+  45kW) 아이콘, 인근 RE100 수요처까지 거리·충당률, PPA 수익성 계산기(IRR/NPV/회수기간).
+
+## 데이터·방법론 요약
+- 발전공식(고정): 설비용량 MW = 면적(m²) × 0.045 ÷ 1000, 연간발전량 MWh = MW × 8760 ×
+  0.15(설비이용률 15%, 한국전력거래소 EPSIS 기준)
+- 시나리오: S0(현행법, 최소 요건만) / S3(특별법·법개정, 5개 정책요건 중 하나 이상) /
+  SMAX(이론최대, 15개 요건 중 하나 이상 — 하드 법적 제한지역 13종은 시나리오 무관 항상 제외)
+- 병기 통계: 실측 산업용 전력수요(한국전력공사 빅데이터센터), 국가산업단지 생산실적
+  (한국산업단지공단) — 각 수치의 출처·기준시점·한계는 화면 각주에 표시
+- 필지 원본 데이터는 산업단지·대형소비처 반경 10km 이내로 수집돼 있어, 그보다 먼
+  농지는 특구 후보 분석에 포함되지 않음(알려진 한계, 상세는 `CLAUDE.md` 참조)
+
+<details>
+<summary><b>개발자용: 로컬에서 실행·수정하기</b></summary>
+
+빌드 시스템 없음 — 순수 정적 파일 + Python. 템플릿을 고치는 개발 작업을 할 때만 필요하고,
+그냥 뷰어를 보기만 할 거라면 위 GitHub Pages 링크만으로 충분합니다.
+
+### 실행
+- **Mac**: `run.app` 더블클릭(첫 실행 시 "확인되지 않은 개발자" 경고가 뜨면 파일을
+  **우클릭 → 열기 → 열기**로 한 번만 허용)
 - **Windows**: `run.bat` 더블클릭
-- **Mac**: `run.app` 더블클릭 (첫 실행 시 "확인되지 않은 개발자" 경고가 뜨면
-  파일을 **우클릭 → 열기 → 열기** 한 번만 허용하면 이후엔 더블클릭으로 바로 실행됩니다)
-- **Mac 폴백**: `.app`이 동작하지 않을 때만 — 터미널에서 이 폴더로 이동 후
-  `chmod +x run.command` 한 번 실행하고 `run.command` 더블클릭
 - **수동**: 이 폴더에서 터미널 열고 `python3 -m http.server 8002` 실행 후
   브라우저에서 http://localhost:8002 접속
 
-## 시군별 URL
-충청남도:
-  http://localhost:8002/chungnam/44270_dangjin/dangjin_map.html
-  http://localhost:8002/chungnam/44210_seosan/seosan_map.html
-  http://localhost:8002/chungnam/44200_asan/asan_map.html
-  http://localhost:8002/chungnam/44130_cheonan/cheonan_map.html
-  http://localhost:8002/chungnam/44810_yesan/yesan_map.html
-  http://localhost:8002/chungnam/44800_hongseong/hongseong_map.html
-  http://localhost:8002/chungnam/44180_boryeong/boryeong_map.html
+### 템플릿 수정 시 필수 절차
+`index.html`/`<시군>_map.html`은 **직접 손편집 금지** — 전부
+`scripts/templates/{index,viewer}_template.html`에서 생성됩니다. 템플릿을 고친 뒤
+반드시 아래로 재생성:
 
-경기도:
-  http://localhost:8002/gyeonggi/41590_hwaseong/hwaseong_map.html
-  http://localhost:8002/gyeonggi/41220_pyeongtaek/pyeongtaek_map.html
-  http://localhost:8002/gyeonggi/41463_yongin/yongin_map.html
-  http://localhost:8002/gyeonggi/41390_siheung_ansan/siheung_ansan_map.html
-  http://localhost:8002/gyeonggi/41500_icheon/icheon_map.html
-  http://localhost:8002/gyeonggi/41480_paju/paju_map.html
-  http://localhost:8002/gyeonggi/41570_gimpo/gimpo_map.html
+```bash
+python3 scripts/build_viewer.py
+```
 
-## 사전 요구사항
-- Python 3 (https://python.org)
-- Chrome 또는 Edge 브라우저
+데이터 파이프라인(클러스터·전력수요·criteria 점수화 등) 전체 구조와 각 스크립트
+실행 순서는 `CLAUDE.md`에 정리돼 있습니다.
 
-## 분석 개요
-- 대상: 경기도 7개 + 충청남도 6개 = 13개 시군, 38개 산업단지
-  + 산단 외 대형 소비처 13곳 (수요 전용 — 현대제철 당진, 삼성전자 평택·화성·기흥,
-    삼성디스플레이 아산·천안, 삼성SDI 천안, 대산석화 4사, SK하이닉스 이천, LGD 파주)
-- 대형 소비처 전력소비는 당진 현대제철·대산 일부를 제외하면 **사업장 단위 비공개**라
-  전사 공시값(지속가능경영보고서 등)을 사업장 규모로 배분한 추정치임 —
-  각 엔트리의 `elec_note`에 산출 근거와 신뢰도(직접공시/추정·확인필요)를 명시
-- 발전공식: Power Density 0.045 kW/m2 (영농형 실증 기반, 보수적 추정)
-- 설비이용률: 15% (한국전력거래소 EPSIS)
-- 시나리오: 14개 정책 변수 (부처별 협의 단계)
-
-## 시각화 주요 기능
-- 산업단지 선택 + 반경 조절 (0.5~10km)
-- 14개 정책 변수 토글 (부처별 그룹)
-- 실시간 설비용량(MW) / 자급률(%) 계산
-- 시나리오별 자급률 비교 (독립 효과)
-- 농지 소유 현황
-- 경사도 시각화
-
-## 폴더 구조
+### 폴더 구조
+```
 gyeonggi_chungnam/
-  gyeonggi/      (7개 시군)
-  chungnam/      (6개 시군)
-  metadata/      (엑셀)
-  run.bat       (Windows)
-  run.command   (Mac)
-  README.md
+  gyeonggi/      경기 7개 시군 카드
+  chungnam/      충남 7개 시군 카드
+  scripts/       빌드·데이터 파이프라인 스크립트 + templates/
+  metadata/      원본 통계(산단 생산실적 CSV, 한전 전력사용량 엑셀 등)
+  index.html     전국 지도(build_viewer.py 산출물)
+  run.command / run.app / run.bat   로컬 서버 실행 편의 스크립트
+```
+
+</details>
