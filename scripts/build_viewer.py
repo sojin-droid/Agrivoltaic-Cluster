@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""build_viewer.py — viewer_template.html/index_template.html에서 14개
-<시군>_map.html + 전국 index.html을 재생성한다.
+"""build_viewer.py — viewer_template.html/map_template.html에서 14개
+<시군>_map.html + 전국 map.html을 재생성한다.
+
+⚠️ 루트 index.html(연구 소개 랜딩)은 이 스크립트가 만들지 않는 손편집 페이지다 —
+전국 지도는 map.html로만 쓴다. 랜딩/insight/method 관리법은 MANAGEMENT.md 참조.
 
 기존 _patch_*.py(정확 문자열 치환 + 멱등 가드, scripts/legacy/로 이동됨) 방식을
 폐기하고, 매번 템플릿에서 전체를 새로 찍어낸다 — 멱등 가드가 필요 없다(템플릿이
 항상 진실이므로). 뷰어를 고칠 땐 scripts/templates/*.html을 고치고 이 스크립트를
-재실행할 것 — 생성된 <시군>_map.html/index.html을 직접 손으로 편집하지 말 것.
+재실행할 것 — 생성된 <시군>_map.html/map.html을 직접 손으로 편집하지 말 것.
 
 시군 메타(이름·좌표·산단 URL)는 scripts/sggs_data.json(과거 index.html의 SGGS
 배열을 1회 추출해 고정한 것)에서 읽는다. 산단 상세(elec_gwh 등)는 그 트림된
@@ -17,6 +20,14 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE_DIR = os.path.join(ROOT, "scripts", "templates")
 SGGS_DATA_PATH = os.path.join(ROOT, "scripts", "sggs_data.json")
+
+# 데이터 파일(points/candidate_clusters/dong_boundary/요약 json 등)은 더 이상 이 저장소에
+# 커밋하지 않고 Supabase Storage 공개 버킷에서 서빙한다. 버킷 자체가 공개 읽기 권한이라
+# 브라우저에서 별도 키 없이 바로 fetch 가능 — 환경변수로 덮어쓸 수 있게 해둔다.
+DATA_BASE_URL = os.environ.get(
+    "AGRIVOLTAIC_DATA_BASE",
+    "https://taemfahsyeplbrrweopo.supabase.co/storage/v1/object/public/agrivoltaic-data/",
+)
 
 
 def load_complexes(path):
@@ -42,6 +53,7 @@ def build_city_pages(sggs):
         abs_path = os.path.join(ROOT, rel_path)
         folder = os.path.dirname(abs_path)
         pfx = os.path.basename(rel_path).replace("_map.html", "")
+        sgg_dir = os.path.dirname(rel_path)  # 예: gyeonggi/41390_siheung_ansan
 
         complexes_path = os.path.join(folder, f"{pfx}_complexes.json")
         complexes = load_complexes(complexes_path) if os.path.exists(complexes_path) else []
@@ -53,6 +65,8 @@ def build_city_pages(sggs):
 
         out = (template
                .replace("{{PFX}}", pfx)
+               .replace("{{DATA_BASE}}", DATA_BASE_URL)
+               .replace("{{SGG_DIR}}", sgg_dir)
                .replace("{{SGG_NAME}}", s["name"])
                .replace("{{SGG_CODE}}", s["code"])
                .replace("{{CENTER_LAT}}", str(s["lat"]))
@@ -87,16 +101,17 @@ def gather_demand_complexes(sggs):
 
 
 def build_index(sggs):
-    with open(os.path.join(TEMPLATE_DIR, "index_template.html"), encoding="utf-8") as f:
+    with open(os.path.join(TEMPLATE_DIR, "map_template.html"), encoding="utf-8") as f:
         template = f.read()
     # index 카드+지도엔 complexes 불필요 — 트림해서 용량 절약. lat/lon은 지도 마커용.
     sggs_view = [{"name": s["name"], "sido": s["sido"], "url": s["url"], "code": s["code"],
                   "lat": s["lat"], "lon": s["lon"]} for s in sggs]
     demands = gather_demand_complexes(sggs)
     out = (template
+           .replace("{{DATA_BASE}}", DATA_BASE_URL)
            .replace("{{SGGS_JSON}}", json.dumps(sggs_view, ensure_ascii=False))
            .replace("{{DEMAND_COMPLEXES_JSON}}", json.dumps(demands, ensure_ascii=False)))
-    with open(os.path.join(ROOT, "index.html"), "w", encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "map.html"), "w", encoding="utf-8") as f:
         f.write(out)
     print(f"  RE100 대형 수요처 {len(demands)}개(매칭선용)")
 
@@ -107,9 +122,9 @@ def main():
 
     print(f"시군 상세 {len(sggs)}개 생성 중...")
     n = build_city_pages(sggs)
-    print(f"\nindex.html 생성 중...")
+    print(f"\nmap.html 생성 중...")
     build_index(sggs)
-    print(f"\n완료: 시군 상세 {n}개 + index.html 1개")
+    print(f"\n완료: 시군 상세 {n}개 + map.html 1개")
 
 
 if __name__ == "__main__":

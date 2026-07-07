@@ -74,7 +74,8 @@ body {
 </head>
 <body>
 <div style="position:fixed;top:8px;right:8px;z-index:9999;">
-  <a href="../../index.html" style="background:#0C356A;color:white;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);">&larr; 전체 시군 목록</a>
+  <a href="../../map.html" style="background:#0C356A;color:white;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);">&larr; 전체 시군 목록</a>
+  <a href="../../index.html" style="background:white;color:#0C356A;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);margin-left:6px;">&#8962; 홈</a>
 </div>
 
 <div id="sidebar">
@@ -160,6 +161,8 @@ body {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const PFX = "gimpo";
+const DATA_BASE = "https://taemfahsyeplbrrweopo.supabase.co/storage/v1/object/public/agrivoltaic-data/"; // Supabase Storage 공개 버킷 base URL
+const SGG_DIR = "gyeonggi/41570_gimpo";     // 예: gyeonggi/41390_siheung_ansan
 const SGG_NAME = "김포시";
 const SGG_CODE = "41570";
 const COMPLEXES = [{"name": "양촌일반산업단지", "lat": 37.6571, "lon": 126.6254, "elec_gwh": 425.7, "is_demand_only": false}, {"name": "통진일반산업단지", "lat": 37.6948, "lon": 126.6031, "elec_gwh": 84.1, "is_demand_only": false}, {"name": "학운일반산업단지", "lat": 37.645, "lon": 126.605, "elec_gwh": 394.2, "is_demand_only": false}];
@@ -219,7 +222,7 @@ const complexLayer = L.layerGroup().addTo(map);
 });
 
 // ── 한전 빅데이터 실측 산업용 전력수요(kepco_industrial_usage.json, 루트 1회 fetch) ──
-fetch("../../kepco_industrial_usage.json").then(function(r) { return r.json(); }).then(function(j) {
+fetch(DATA_BASE + "kepco_industrial_usage.json").then(function(r) { return r.json(); }).then(function(j) {
   const box = document.getElementById("kepco-usage-panel");
   const e = j.by_code && j.by_code[SGG_CODE];
   if (!e) { box.innerHTML = '<span class="note">데이터 없음</span>'; return; }
@@ -256,7 +259,7 @@ const clusterCache = { S0: null, S3: null, SMAX: null };
 let curScen = "S3";
 function loadClusters(scen) {
   if (clusterCache[scen]) return Promise.resolve(clusterCache[scen]);
-  return fetch(PFX + "_candidate_clusters_" + scen + ".json")
+  return fetch(DATA_BASE + SGG_DIR + "/" + PFX + "_candidate_clusters_" + scen + ".json")
     .then(function(r) { return r.json(); })
     .then(function(d) { clusterCache[scen] = d; return d; })
     .catch(function() { clusterCache[scen] = []; return []; });
@@ -402,7 +405,7 @@ document.getElementById("chk-min5").addEventListener("change", renderClusters);
 let pointLayer = null, pointsData = null;
 function loadPoints() {
   if (pointsData) return Promise.resolve(pointsData);
-  return fetch(PFX + "_points.json").then(function(r) { return r.json(); })
+  return fetch(DATA_BASE + SGG_DIR + "/" + PFX + "_points.json").then(function(r) { return r.json(); })
     .then(function(d) { pointsData = d; return d; });
 }
 function renderPoints() {
@@ -435,7 +438,7 @@ let boundaryLayer = null, boundaryData = null;
 const CHORO_COLORS = ["#fff7bc", "#fee391", "#fec44f", "#fe9929", "#d95f0e"];
 function loadBoundary() {
   if (boundaryData) return Promise.resolve(boundaryData);
-  return fetch(PFX + "_dong_boundary.json").then(function(r) { return r.json(); })
+  return fetch(DATA_BASE + SGG_DIR + "/" + PFX + "_dong_boundary.json").then(function(r) { return r.json(); })
     .then(function(d) { boundaryData = d; return d; });
 }
 function quantileBreaks(values, n) {

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLANiT · Agrivoltaic — Insight</title>
+<meta name="description" content="시군 종합 순위표, 5지표 히트맵, RE100 충당률 게이지, 이용률 민감도, 저개인소유 후보 목록.">
+
+<!-- ═══════════════════════════════════════════════
+  ✏️ 수정 가이드 (insight.html — 손편집 페이지)
+  · 모든 수치는 페이지 로드 시 Supabase Storage에서 fetch — 데이터 갱신 시
+    이 파일은 손댈 필요 없음 (migrate_to_supabase.py 재업로드만 하면 반영)
+  · 섹션 추가: 해운 사이트 lab.html 패턴 블록 복사 후 fetch 데이터로 교체
+  · 상세 절차: MANAGEMENT.md 참고
+═══════════════════════════════════════════════ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <span>Agrivoltaic · 데이터 인사이트 (전 수치 Supabase Storage 실시간 로드)</span>
+    <span><a href="index.html">← Story로 돌아가기</a></span>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="mark">PLANiT</span><span class="sector">Agrivoltaic</span></a>
+    <nav class="menu" id="menu">
+      <a href="index.html">Story</a>
+      <a href="map.html">Map</a>
+      <a class="active" href="insight.html">Insight</a>
+      <a href="method.html">Method</a>
+    </nav>
+    <div style="display:flex;gap:12px;align-items:center">
+      <a class="nav-cta" href="map.html">지도 열기</a>
+      <button class="hamburger" aria-label="메뉴 열기" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
+    </div>
+  </div>
+</header>
+
+<div class="page-hero">
+  <div class="wrap">
+    <p class="eyebrow">Insight · Numbers behind the map</p>
+    <h1>지도 뒤의 <em>숫자들</em>.</h1>
+    <p class="lede">14개 시군의 특구 필요도, 계통 여유, RE100 수요 충당 가능성을 표와 차트로 봅니다.
+      모든 수치는 지도와 같은 원천 데이터(Supabase Storage)에서 실시간으로 불러옵니다.</p>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:24px">
+  <div class="data-error" id="load-error">데이터를 불러오지 못했습니다. 네트워크 상태를 확인하거나 잠시 후 새로고침해 주세요.</div>
+</div>
+
+<!-- ═══════════ 1. 시군 종합 순위표 (정렬 가능) ═══════════ -->
+<section id="ranking" style="padding-top:48px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow">Ranking · 특구 필요도</p>
+        <h2>시군 종합 순위 — <em>어디부터</em> 특구인가.</h2>
+      </div>
+      <a class="more" href="method.html#criteria">지표·가중치 설명 →</a>
+    </div>
+    <p class="lede reveal" style="margin-bottom:24px">열 제목을 클릭하면 그 지표 기준으로 다시 정렬됩니다. 배지는 종합점수 상·중·하 3분위입니다(S3 기준).</p>
+    <div style="overflow-x:auto" class="reveal">
+      <table class="rt" id="rank-table" style="min-width:860px"><thead></thead><tbody></tbody></table>
+    </div>
+    <p class="footnote" id="rank-note"></p>
+  </div>
+</section>
+
+<!-- ═══════════ 2. 시군 × 지표 히트맵 ═══════════ -->
+<section class="alt" id="heatmap">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow">Heatmap · 강점과 약점</p>
+        <h2>같은 순위라도, <em>이유</em>는 다릅니다.</h2>
+      </div>
+    </div>
+    <p class="lede reveal" style="margin-bottom:24px">진할수록 그 지표에서 14개 시군 중 상대적으로 강하다는 뜻(0~1 정규화). 칸에 올리면 원자료 값이 표시됩니다.</p>
+    <div style="overflow-x:auto" class="reveal">
+      <div class="hm-grid" id="hm" style="grid-template-columns:110px repeat(5,minmax(90px,1fr));min-width:640px"></div>
+    </div>
+    <p class="footnote" id="hm-tip" style="min-height:16px"></p>
+  </div>
+</section>
+
+<!-- ═══════════ 3. RE100 수요 충당률 링 게이지 ═══════════ -->
+<section id="coverage">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow">Coverage · 수요를 얼마나 채우나</p>
+        <h2>후보를 다 지으면, 제조업 전력의 <em>몇 %</em>를 채울까.</h2>
+      </div>
+    </div>
+    <div class="reveal" style="display:flex;gap:40px;align-items:center;flex-wrap:wrap">
+      <svg viewBox="0 0 140 140" style="width:170px;flex-shrink:0">
+        <circle cx="70" cy="70" r="58" fill="none" stroke="var(--card)" stroke-width="13"/>
+        <circle id="cov-ring" cx="70" cy="70" r="58" fill="none" stroke="url(#gcov)" stroke-width="13" stroke-linecap="round"
+          pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 70 70)" style="transition:stroke-dasharray 1s ease"/>
+        <defs><linearGradient id="gcov"><stop offset="0%" stop-color="var(--teal)"/><stop offset="100%" stop-color="var(--gold)"/></linearGradient></defs>
+        <text id="cov-val" x="70" y="72" text-anchor="middle" font-family="var(--serif)" font-weight="700" font-size="24" fill="var(--navy)">–</text>
+        <text id="cov-sub" x="70" y="90" text-anchor="middle" font-family="var(--mono)" font-size="8.5" fill="var(--muted)"></text>
+      </svg>
+      <div style="flex:1;min-width:280px">
+        <div class="tabs" id="cov-tabs" style="margin-bottom:14px"></div>
+        <p id="cov-desc" style="font-size:14px;color:var(--muted);word-break:keep-all"></p>
+      </div>
+    </div>
+    <p class="footnote" id="cov-note"></p>
+  </div>
+</section>
+
+<!-- ═══════════ 4. 이용률 민감도 ═══════════ -->
+<section class="alt" id="sensitivity">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow">Sensitivity · 가정을 흔들어 보기</p>
+        <h2>발전량은 <em>이용률 가정</em>에 달려 있습니다.</h2>
+      </div>
+    </div>
+    <p class="lede reveal" style="margin-bottom:24px">본 분석의 기본 가정은 15%(EPSIS 태양광 평균)입니다. 슬라이더로 가정을 바꾸면 S3 컴팩트 클러스터(50MW+ 포함 전체)의 연간발전량이 어떻게 달라지는지 보세요.</p>
+    <div class="calc reveal" style="margin-bottom:0">
+      <div class="field" style="max-width:420px">
+        <label>설비이용률: <b id="cf-val" style="color:var(--input)">15</b>% <span style="color:var(--muted)">(기본 15%)</span></label>
+        <input type="range" id="cf-slider" min="10" max="25" step="1" value="15" style="width:100%">
+      </div>
+      <div class="result-big" style="margin-top:18px">
+        <div class="rb"><div class="v" id="sens-gwh">–</div><div class="k">S3 클러스터 연간발전량 (GWh/년)</div></div>
+        <div class="rb"><div class="v" id="sens-mw">–</div><div class="k">대상 설비용량 (MW, 고정)</div></div>
+      </div>
+      <div style="height:16px;background:var(--card);border-radius:99px;overflow:hidden;max-width:640px">
+        <div id="sens-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal),var(--gold));width:0;transition:width .5s ease"></div>
+      </div>
+      <p class="footnote">막대 = 이용률 25% 대비. 연간발전량 GWh = MW × 8760h × 이용률 ÷ 1000. 설비용량은 이용률과 무관하게 고정.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 5. 저(低)개인소유 후보 목록 ═══════════ -->
+<section id="lowindiv">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow">Shortlist · 공공·법인 주도형 후보</p>
+        <h2>부지 확보가 <em>쉬운 곳</em>부터.</h2>
+      </div>
+    </div>
+    <p class="lede reveal" style="margin-bottom:24px">개인소유 비율이 낮은(국공유지·법인 중심) 50MW+ 후보는 다수 지주 동의 없이 특구 지정이 상대적으로 수월합니다. 행을 클릭하면 해당 시군 지도로 이동합니다.</p>
+    <div class="tabs reveal" id="li-tabs">
+      <button class="tab on" data-f="all">전체</button>
+      <button class="tab" data-f="경기도">경기</button>
+      <button class="tab" data-f="충청남도">충남</button>
+    </div>
+    <div style="overflow-x:auto" class="reveal">
+      <table class="rt" id="li-table" style="min-width:760px">
+        <thead><tr><th style="text-align:left">시군 · 인근 산단</th><th>개인소유</th><th>소유 미상</th><th>용량 MW</th><th>면적 ha</th><th>필지 수</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="footnote" id="li-note"></p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fine">
+      <span>© 2026 PLANiT Institute · <a href="index.html" style="color:var(--gold)">PLANiT Agrivoltaic</a></span>
+      <span>원천 데이터: Supabase Storage `agrivoltaic-data` · <a href="method.html#sources" style="color:var(--gold)">출처·한계</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const DATA_BASE = "https://taemfahsyeplbrrweopo.supabase.co/storage/v1/object/public/agrivoltaic-data/";
+const CF_DEFAULT = 0.15; // 설비이용률 기본값(EPSIS) — 발전공식은 CLAUDE.md 고정 규칙
+
+(async function () {
+  let summary, criteria, clusters, kepco, lowindiv, sggs;
+  try {
+    [summary, criteria, clusters, kepco, lowindiv, sggs] = await Promise.all([
+      "candidate_summary.json", "criteria_scores.json", "cluster_summary.json",
+      "kepco_industrial_usage.json", "lowindiv_candidates_S3.json",
+    ].map(f => fetch(DATA_BASE + f).then(r => { if (!r.ok) throw 0; return r.json(); }))
+      .concat(fetch("scripts/sggs_data.json").then(r => { if (!r.ok) throw 0; return r.json(); })));
+  } catch (e) {
+    document.getElementById("load-error").style.display = "block";
+    return;
+  }
+  const nameOf = {}, urlOf = {};
+  sggs.forEach(s => { nameOf[s.code] = s.name; urlOf[s.code] = s.url; });
+  const BADGE = { gold: ["🥇 최우선", "gold"], silver: ["🥈 검토", "silver"], bronze: ["🥉 후순위", "bronze"] };
+
+  /* ── 1. 종합 순위표 (lab 08 정렬 표 패턴) ── */
+  const IND_KEYS = Object.keys(criteria.indicator_labels);
+  const rows = Object.entries(criteria.by_code).map(([code, e]) => ({
+    code, name: nameOf[code] || code, score: e.score, rank: e.rank, badge: e.badge,
+    ...Object.fromEntries(IND_KEYS.map(k => [k, e.indicators[k] ? e.indicators[k].value : null])),
+  }));
+  const COLS = [
+    { k: "rank", label: "순위", fmt: v => v },
+    { k: "name", label: "시군", fmt: v => v },
+    { k: "badge", label: "배지", fmt: v => '<span class="badge ' + BADGE[v][1] + '">' + BADGE[v][0] + "</span>" },
+    { k: "score", label: "종합점수", fmt: v => v.toFixed(3) },
+    ...IND_KEYS.map(k => ({
+      k, label: criteria.indicator_labels[k],
+      fmt: v => v == null ? '<span style="color:var(--muted)">–</span>'
+        : k === "indiv_ratio" ? Math.round(v * 100) + "%"
+        : typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : v,
+    })),
+  ];
+  let sortKey = "rank", asc = true;
+  function renderRank() {
+    const thead = document.querySelector("#rank-table thead");
+    thead.innerHTML = "<tr>" + COLS.map(c =>
+      '<th data-k="' + c.k + '" class="' + (c.k === sortKey ? "sorted" : "") + '"' +
+      (c.k === "name" || c.k === "badge" ? ' style="text-align:left"' : "") + ">" +
+      c.label + (c.k === sortKey ? (asc ? " ▲" : " ▼") : "") + "</th>").join("") + "</tr>";
+    const sorted = [...rows].sort((a, b) => {
+      const x = a[sortKey], y = b[sortKey];
+      if (x == null) return 1; if (y == null) return -1;
+      return (x < y ? -1 : x > y ? 1 : 0) * (asc ? 1 : -1);
+    });
+    document.querySelector("#rank-table tbody").innerHTML = sorted.map(r =>
+      "<tr>" + COLS.map(c => "<td" + (c.k === "name" || c.k === "badge" ? ' style="text-align:left"' : "") + ">" +
+        c.fmt(r[c.k]) + "</td>").join("") + "</tr>").join("");
+    thead.querySelectorAll("th").forEach(th => th.addEventListener("click", () => {
+      const k = th.dataset.k;
+      if (sortKey === k) asc = !asc; else { sortKey = k; asc = k === "rank" || k === "name"; }
+      renderRank();
+    }));
+  }
+  renderRank();
+  document.getElementById("rank-note").textContent =
+    "산단 생산실적 데이터가 없는 시군은 그 지표를 제외하고 나머지 4개를 25%씩 재정규화해 점수화(– 표시). 기준 시나리오: " + criteria.scenario_basis + ".";
+
+  /* ── 2. 히트맵 (lab 14 패턴: 값→색 보간) ── */
+  const hm = document.getElementById("hm");
+  const mix = t => { const a = [235, 245, 251], b = [12, 53, 106]; return "rgb(" + a.map((av, i) => Math.round(av + (b[i] - av) * t)).join(",") + ")"; };
+  const byRank = [...rows].sort((a, b) => a.rank - b.rank);
+  hm.innerHTML = "<span></span>" + IND_KEYS.map(k =>
+    '<span style="text-align:center;font-family:var(--mono);color:var(--muted);font-size:10.5px;word-break:keep-all">' + criteria.indicator_labels[k] + "</span>").join("") +
+    byRank.map(r => '<span style="color:var(--muted);align-self:center">' + r.name + "</span>" + IND_KEYS.map(k => {
+      const ind = criteria.by_code[r.code].indicators[k];
+      if (!ind || ind.value == null) return '<div class="hm-cell" data-t="' + r.name + " · " + criteria.indicator_labels[k] + ': 데이터없음" style="background:repeating-linear-gradient(45deg,#f0f0f0,#f0f0f0 4px,#fff 4px,#fff 8px)"></div>';
+      const raw = k === "indiv_ratio" ? Math.round(ind.value * 100) + "%" : (+ind.value).toLocaleString(undefined, { maximumFractionDigits: 1 });
+      return '<div class="hm-cell" data-t="' + r.name + " · " + criteria.indicator_labels[k] + ": " + raw + " (정규화 " + ind.norm.toFixed(2) + ')" style="background:' + mix(ind.norm) + '"></div>';
+    }).join("")).join("");
+  hm.addEventListener("mouseover", e => {
+    const c = e.target.closest("[data-t]"); if (!c) return;
+    c.style.transform = "scale(1.08)"; document.getElementById("hm-tip").textContent = c.dataset.t;
+  });
+  hm.addEventListener("mouseout", e => { const c = e.target.closest("[data-t]"); if (c) c.style.transform = ""; });
+
+  /* ── 3. RE100 충당률 게이지 (lab 16 패턴) ── */
+  const covTabs = document.getElementById("cov-tabs");
+  const s3clusters = clusters.S3 || {};
+  const covData = Object.keys(s3clusters).map(code => {
+    const gwh = s3clusters[code].reduce((t, c) => t + c.mw, 0) * 8760 * CF_DEFAULT / 1000;
+    const ke = kepco.by_code && kepco.by_code[code];
+    const demand = ke && !ke.note ? ke.manuf_gwh_year : null;
+    return { code, name: nameOf[code] || code, gwh, demand, pct: demand ? gwh / demand * 100 : null };
+  }).filter(d => d.pct != null).sort((a, b) => b.pct - a.pct);
+  covTabs.innerHTML = covData.map((d, i) =>
+    '<button class="tab' + (i === 0 ? " on" : "") + '" data-i="' + i + '">' + d.name + "</button>").join("");
+  function showCov(i) {
+    const d = covData[i];
+    const shown = Math.min(d.pct, 100);
+    document.getElementById("cov-ring").setAttribute("stroke-dasharray", shown + " 100");
+    document.getElementById("cov-val").textContent = Math.round(d.pct) + "%";
+    document.getElementById("cov-sub").textContent = d.name;
+    document.getElementById("cov-desc").innerHTML =
+      "<b>" + d.name + "</b> — S3 컴팩트 클러스터(50MW+)를 모두 지으면 연간 <b>" +
+      Math.round(d.gwh).toLocaleString() + " GWh</b>, 시군 제조업 전력수요(" +
+      Math.round(d.demand).toLocaleString() + " GWh/년)의 <b>" + Math.round(d.pct) + "%</b>" +
+      (d.pct > 100 ? " — 수요 초과(잉여 판매 가능)" : "") + ".";
+  }
+  covTabs.addEventListener("click", e => {
+    const t = e.target.closest(".tab"); if (!t) return;
+    covTabs.querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
+    t.classList.add("on"); showCov(+t.dataset.i);
+  });
+  showCov(0);
+  document.getElementById("cov-note").textContent =
+    "이용률 15% 가정. 수요 출처: " + kepco.source_label + ". ⚠ " + kepco.caveat + ". 링은 100%에서 포화 표시(수치는 실제 %).";
+
+  /* ── 4. 이용률 민감도 (lab 09 파라미터 연동 패턴) ── */
+  const s3mw = Object.values(s3clusters).flat().reduce((t, c) => t + c.mw, 0);
+  document.getElementById("sens-mw").textContent = Math.round(s3mw).toLocaleString();
+  const slider = document.getElementById("cf-slider");
+  function renderSens() {
+    const cf = +slider.value / 100;
+    const gwh = s3mw * 8760 * cf / 1000;
+    document.getElementById("cf-val").textContent = slider.value;
+    document.getElementById("sens-gwh").textContent = Math.round(gwh).toLocaleString();
+    document.getElementById("sens-bar").style.width = (cf / 0.25 * 100) + "%";
+  }
+  slider.addEventListener("input", renderSens);
+  renderSens();
+
+  /* ── 5. 저개인소유 후보 (lab 07 탭 필터 패턴) ── */
+  const liBody = document.querySelector("#li-table tbody");
+  function renderLI(f) {
+    const list = lowindiv.filter(d => f === "all" || d.sido === f).slice(0, 20);
+    liBody.innerHTML = list.map(d =>
+      '<tr style="cursor:pointer" onclick="location.href=\'' + d.url + "'\">" +
+      '<td style="text-align:left"><b>' + d.sgg + "</b> · " + d.complex + "</td>" +
+      "<td" + (d.ind_pct === 0 ? ' class="su"' : "") + ">" + Math.round(d.ind_pct * 100) + "%</td>" +
+      "<td>" + Math.round(d.unknown_pct * 100) + "%</td>" +
+      "<td>" + d.mw.toFixed(1) + "</td><td>" + d.area_ha.toFixed(0) + "</td><td>" + d.n_parcels.toLocaleString() + "</td></tr>").join("");
+    document.getElementById("li-note").textContent =
+      "개인소유 비율 오름차순 상위 " + list.length + "건 표시(전체 " + lowindiv.filter(d => f === "all" || d.sido === f).length +
+      "건). ⚠ 소유 미상 비율이 높은 시군(예산·용인 등)은 실제 개인 비율이 더 높을 수 있음.";
+  }
+  document.querySelectorAll("#li-tabs .tab").forEach(t => t.addEventListener("click", () => {
+    document.querySelectorAll("#li-tabs .tab").forEach(x => x.classList.remove("on"));
+    t.classList.add("on"); renderLI(t.dataset.f);
+  }));
+  renderLI("all");
+})();
+</script>
+<script src="assets/site.js"></script>
+</body>
+</html>

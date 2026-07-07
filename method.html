@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLANiT · Agrivoltaic — Method</title>
+<meta name="description" content="발전공식, 시나리오 정의, 특구 필요도 지표·가중치, 데이터 출처와 알려진 한계.">
+
+<!-- ═══════════════════════════════════════════════
+  ✏️ 수정 가이드 (method.html — 손편집 페이지)
+  · 지표·가중치 표는 criteria_scores.json에서 자동 로드 — 가중치를 바꾸면
+    (scripts/build_criteria_scores.py의 WEIGHTS) 재업로드만으로 이 페이지에 반영
+  · 발전공식·시나리오 서술은 본문 직접 수정 (CLAUDE.md 고정 규칙과 일치 유지!)
+  · 상세 절차: MANAGEMENT.md 참고
+═══════════════════════════════════════════════ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <span>Agrivoltaic · 방법론과 데이터의 출처, 그리고 한계</span>
+    <span><a href="index.html">← Story로 돌아가기</a></span>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="mark">PLANiT</span><span class="sector">Agrivoltaic</span></a>
+    <nav class="menu" id="menu">
+      <a href="index.html">Story</a>
+      <a href="map.html">Map</a>
+      <a href="insight.html">Insight</a>
+      <a class="active" href="method.html">Method</a>
+    </nav>
+    <div style="display:flex;gap:12px;align-items:center">
+      <a class="nav-cta" href="map.html">지도 열기</a>
+      <button class="hamburger" aria-label="메뉴 열기" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
+    </div>
+  </div>
+</header>
+
+<div class="page-hero">
+  <div class="wrap">
+    <p class="eyebrow">Method · How we count</p>
+    <h1>모든 숫자에는 <em>가정</em>이 있습니다.</h1>
+    <p class="lede">이 페이지는 지도의 모든 수치가 어떤 공식과 가정으로 계산됐는지,
+      원자료는 어디서 왔는지, 그리고 어디까지 믿어도 되는지를 밝힙니다.</p>
+  </div>
+</div>
+
+<!-- ═══════════ 발전공식 ═══════════ -->
+<section id="formula">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div><p class="eyebrow">Formula · 발전 계산식(고정)</p>
+      <h2>1,000㎡의 농지 = <em>45kW</em>.</h2></div>
+    </div>
+    <div class="grid reveal" style="grid-template-columns:repeat(3,1fr)">
+      <div class="card"><div class="meta"><span class="tag">설비용량</span></div>
+        <h3 style="font-family:var(--mono);font-size:15px">MW = 면적(m²) × 0.045 ÷ 1000</h3>
+        <p>영농형 태양광 표준 설치밀도 0.045kW/m². 최소단위 1유닛 = 1,000㎡ = 45kW.</p></div>
+      <div class="card"><div class="meta"><span class="tag">연간발전량</span></div>
+        <h3 style="font-family:var(--mono);font-size:15px">MWh = MW × 8760h × 0.15</h3>
+        <p>설비이용률 15%는 한국전력거래소(EPSIS) 태양광 평균 기준. 민감도는 <a href="insight.html#sensitivity" style="text-decoration:underline">Insight</a>에서 직접 조정 가능.</p></div>
+      <div class="card"><div class="meta"><span class="tag">자급률·충당률</span></div>
+        <h3 style="font-family:var(--mono);font-size:15px">연간발전량 ÷ 소비량 × 100</h3>
+        <p>수요처 매칭의 거리는 직선거리 기준(실제 계통 경로 아님) — 화면에 각주 상시 표기.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 시나리오 ═══════════ -->
+<section class="alt" id="scenario">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div><p class="eyebrow">Scenario · 제도 시나리오 3종</p>
+      <h2>어디까지 <em>법이 열리느냐</em>의 세 가지 가정.</h2></div>
+    </div>
+    <div class="grid reveal">
+      <div class="card"><div class="meta"><span class="badge soon">S0</span><span>현행법</span></div>
+        <h3>지금 당장 가능한 곳</h3>
+        <p>현행 법령의 최소 요건만 통과하면 되는 필지. 가장 보수적인 기준선.</p></div>
+      <div class="card"><div class="meta"><span class="badge live">S3</span><span>특별법 (기준 시나리오)</span></div>
+        <h3>특별법·법개정 시 가능한 곳</h3>
+        <p>5개 정책 요건 중 하나 이상에 해당해 특별법 제정 또는 법 개정으로 열리는 필지.
+          특구 필요도 배지·순위 산정의 기준 시나리오.</p></div>
+      <div class="card"><div class="meta"><span class="badge gold">SMAX</span><span>이론최대</span></div>
+        <h3>이론적 상한</h3>
+        <p>15개 정책 요건 중 하나 이상 해당. 단 문화재·생태·공원·군사 등
+          <b>하드 법적 제한지역 13종은 어느 시나리오에서도 항상 제외</b>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 클러스터링 ═══════════ -->
+<section id="cluster">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div><p class="eyebrow">Clustering · 필지에서 특구 후보로</p>
+      <h2>흩어진 필지를 <em>컴팩트한 덩어리</em>로.</h2></div>
+    </div>
+    <div class="reveal" style="max-width:760px">
+      <p style="color:var(--muted);word-break:keep-all;margin-bottom:14px">
+        시나리오별 적격 필지 전체에 밀도 기반 클러스터링(DBSCAN, 이웃 반경 200m, 최소 3필지)을
+        적용하고, 50MW를 초과하는 준연속 농지 덩어리는 <b>용량 제약 영역성장(region growing)</b>으로
+        무손실 분할합니다 — 가장 가까운 산업단지에서 가까운 필지를 시드로, 용량 상한에 닿을 때까지
+        이웃 필지를 흡수하는 방식입니다.</p>
+      <p style="color:var(--muted);word-break:keep-all">
+        개인소유 비율 상한(t) 슬라이더는 클러스터를 다시 계산하지 않는 <b>사후 표시 필터</b>입니다 —
+        같은 후보 집합에서 부지 확보 리스크가 낮은 것만 걸러 보여줍니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 특구 필요도 지표 ═══════════ -->
+<section class="alt" id="criteria">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div><p class="eyebrow">Criteria · 특구 필요도 배지</p>
+      <h2>🥇🥈🥉는 <em>5개 지표의 가중합</em>입니다.</h2></div>
+    </div>
+    <div style="overflow-x:auto" class="reveal">
+      <table class="rt" id="crit-table" style="min-width:560px">
+        <thead><tr><th style="text-align:left">지표</th><th>기본 가중치</th><th style="text-align:left">비고</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="footnote" id="crit-note">각 지표는 14개 시군 min-max 정규화 후 가중합. 상위 1/3 🥇 gold · 중위 🥈 silver · 하위 🥉 bronze.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 데이터 출처 ═══════════ -->
+<section id="sources">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div><p class="eyebrow">Sources · 원자료</p>
+      <h2>숫자의 <em>출처</em>.</h2></div>
+    </div>
+    <ul class="post-list reveal">
+      <li class="row"><span class="rdate">계통 여유</span><div><h3>한국전력공사 분산전원 연계정보 API</h3><p>배전선로(DL)·변압기·변전소 여유용량을 읍면동 단위 풀로 합산. DL의 61%가 2개 이상 동에 걸쳐 있어 필지→단일 DL 태깅 대신 동 단위 풀로만 다룸.</p></div><span class="rtime">bigdata.kepco.co.kr</span></li>
+      <li class="row"><span class="rdate">전력수요</span><div><h3>한국전력공사 빅데이터센터 · 산업분류별 전력사용량</h3><p>2023.01–2025.12 3개년 누적의 연평균. 시군구 전체 업종 합산치로, 산단 단위 추정 소비량과 1:1 비교 대상이 아님(각주 상시 표기).</p></div><span class="rtime">2023–2025</span></li>
+      <li class="row"><span class="rdate">생산실적</span><div><h3>한국산업단지공단 · 국가산업단지 산업동향</h3><p>국가산단이 있는 시군만 실측치 존재(당진·아산·파주·시흥/안산). 없는 시군은 해당 지표 제외 후 재정규화.</p></div><span class="rtime">2026-03</span></li>
+      <li class="row"><span class="rdate">행정경계</span><div><h3>국가데이터처 SGIS 행정구역경계</h3><p>읍면동 코로플레스용. 법정동↔행정동 통합으로 이름 매칭 실패 시 필지 대표점 다수결(point-in-polygon)로 보정 — 동 수 기준 95.2% 매칭.</p></div><span class="rtime">sgis.mods.go.kr</span></li>
+      <li class="row"><span class="rdate">이용률</span><div><h3>한국전력거래소 EPSIS</h3><p>태양광 설비이용률 15% 가정의 출처. SMP 118.54원/kWh(2026 기준)는 PPA 계산기 기본값.</p></div><span class="rtime">epsis.kpx.or.kr</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════ 알려진 한계 ═══════════ -->
+<section class="alt" id="limits">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div><p class="eyebrow">Limits · 어디까지 믿어도 되는가</p>
+      <h2>알려진 <em>한계</em> 네 가지.</h2></div>
+    </div>
+    <div class="grid two reveal">
+      <div class="card"><div class="meta"><span class="tag">수집 범위</span></div>
+        <h3>필지는 산단 반경 10km 이내만</h3>
+        <p>원본 필지 데이터가 산업단지·대형소비처 반경 10km 이내로 수집돼 있어, 그보다 먼 농지는
+          후보 분석에 처음부터 포함되지 않습니다. 전체 커버리지가 필요한 의사결정 전 반드시 감안할 것.</p></div>
+      <div class="card"><div class="meta"><span class="tag">가정 민감도</span></div>
+        <h3>이용률 15%는 가정입니다</h3>
+        <p>발전량·충당률·PPA 수익성 모두 이용률 가정에 비례해 움직입니다.
+          <a href="insight.html#sensitivity" style="text-decoration:underline">민감도 도구</a>로 직접 확인하세요.</p></div>
+      <div class="card"><div class="meta"><span class="tag">비교 불가</span></div>
+        <h3>실측 수요는 시군구 전체 합산치</h3>
+        <p>한전 실측 전력수요는 시군구 전체 업종 기준이라 산단 단위 추정 소비량과 1:1 비교
+          대상이 아닙니다 — 병기 참고용.</p></div>
+      <div class="card"><div class="meta"><span class="tag">거리·소유</span></div>
+        <h3>직선거리, 그리고 소유 미상</h3>
+        <p>수요처 매칭 거리는 직선거리(실제 계통 경로 아님). 일부 시군(예산·용인 등)은 소유
+          정보 결측이 커서 개인소유 비율이 실제보다 낮게 보일 수 있습니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fine">
+      <span>© 2026 PLANiT Institute · <a href="index.html" style="color:var(--gold)">PLANiT Agrivoltaic</a></span>
+      <span>재현 코드: <a href="https://github.com/sojin-droid/Agrivoltaic-Cluster" style="color:var(--gold)">GitHub</a> · 데이터: Supabase Storage</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const DATA_BASE = "https://taemfahsyeplbrrweopo.supabase.co/storage/v1/object/public/agrivoltaic-data/";
+/* 지표·가중치 표: criteria_scores.json에서 자동 로드 */
+fetch(DATA_BASE + "criteria_scores.json").then(r => r.json()).then(c => {
+  const NOTES = {
+    growth_pct: "국가산단 보유 시군만 실측 — 없으면 제외 후 재정규화",
+    demand_cnt: "RE100 대형 수요처(제철소·반도체 등) 개수",
+    grid_ok_pct: "계통 여유 판정 가능 후보 중 여유 있음 비율",
+    total_mw: "S3 특구 후보 합계 설비용량",
+    indiv_ratio: "낮을수록 부지 확보 용이(역방향 지표)",
+  };
+  document.querySelector("#crit-table tbody").innerHTML =
+    Object.entries(c.indicator_labels).map(([k, label]) =>
+      '<tr><td style="text-align:left"><b>' + label + "</b></td><td>" +
+      Math.round((c.weights_default[k] || 0) * 100) + '%</td><td style="text-align:left;font-family:var(--sans);color:var(--muted)">' +
+      (NOTES[k] || "") + "</td></tr>").join("");
+}).catch(() => {
+  document.getElementById("crit-note").textContent = "지표 데이터를 불러오지 못했습니다 — 기본 가중치는 5개 지표 균등 20%입니다.";
+});
+</script>
+<script src="assets/site.js"></script>
+</body>
+</html>
