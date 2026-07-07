@@ -1,5 +1,0 @@
-# 적재용 데이터는 Supabase로만 올림 — GitHub Pages엔 불필요
-data/*.csv
-# (lowindiv json은 05_import SQL에 내장돼 있어 data의 json도 불필요)
-data/*.json
-.DS_Store

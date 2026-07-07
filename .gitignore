@@ -1,44 +1,57 @@
-# 무거운 원본 필지(geojson)는 GitHub에 올리지 않음 — Supabase(PostGIS)로 이관
-*_parcels.geojson
-
-# <시군>_points.json은 build_points.py로 재생성 가능하지만, 필지 점 레이어 토글이
-# 브라우저에서 직접 fetch하는 런타임 데이터라 GitHub Pages 정적 배포엔 필수 —
-# 2026-07-06부로 커밋 대상으로 전환(합계 ~87MB, 시군당 최대 12MB로 100MB 제한 밖).
-
-# 비밀키 (KEPCO 등)
+# ── 비밀키/환경변수 ──
 .env
 
 # Claude Code 로컬 세션 설정(머신별, 공유 대상 아님)
 .claude/settings.local.json
 .claude/*.lock
 
+.DS_Store
+
+# ── 데이터: 2026-07-07부로 Supabase Storage(agrivoltaic-data 버킷, 공개 읽기)로 이관.
+# 로컬에는 그대로 둬도 되고(빌드 스크립트가 읽음), git에는 더 이상 커밋하지 않는다.
+# 실제 반영: scripts/migrate_to_supabase.py, supabase/storage_setup.sql, README 참고.
+
+# 루트 요약 데이터
+/candidate_summary.json
+/cluster_summary.json
+/criteria_scores.json
+/crosswalk.csv
+/dong_pool.csv
+/dong_pool.json
+/kepco_industrial_usage.json
+/lowindiv_candidates_S3.json
+
+# 시군 폴더의 데이터 파일(포인트/클러스터/경계/산단 등) — <시군>_map.html(코드)만 git에 남긴다
+gyeonggi/**/*.json
+gyeonggi/**/*.geojson
+gyeonggi/**/*.csv
+chungnam/**/*.json
+chungnam/**/*.geojson
+chungnam/**/*.csv
+
+# 원본 필지(무거운 geojson) — 애초에 Supabase 이관 대상이 아니라 로컬 전용
+*_parcels.geojson
+
 # 로컬 DB/캐시
 cluster_db/*.db
 cluster_db/*.db-journal
-.DS_Store
 
 # 배포 중간 산출물(대용량 CSV 등)
 deploy/*.csv
 deploy/backup/
 
-# 동-여유풀 파이프라인: 원본 캐시·중간 산출물(재실행으로 재생성). dong_pool.*/sanity_check_log는 커밋 대상
+# 동-여유풀/특구후보/읍면동경계 파이프라인의 원본 캐시·중간 산출물(재실행으로 재생성 가능)
 addr_lidong_raw/*.json
 cache/beopjeongdong_raw.txt
 scripts/dong_list.csv
 dl_dong_index.csv
-*_dong_pool.json
-
-# 특구 후보 클러스터링(build_candidate_clusters.py) — 시나리오별(S0/S3/SMAX) 3세트.
-# *_candidate_clusters_*.json(members 제외 경량본)은 뷰어가 직접 로드하는 런타임
-# 데이터라 커밋 대상. members(필지 PNU, 용량의 94.8% 차지)는 뷰어 미사용이라 gitignore.
 *_candidate_members_*.json
 *_candidate_dong_summary_*.json
-
-# 읍면동 경계(fetch_dong_boundaries.py) 원본 캐시·중간 통합본 — 재호출로 재생성 가능.
-# crosswalk.csv/<시군>_dong_boundary.json은 커밋 대상(SGIS 재호출 없이 필요한 런타임 데이터)
 boundary_raw/*.json
 boundary_dong_4326.json
 
-# 한전 빅데이터센터 "산업분류별 전력사용량" 원본 xlsx — SSO 로그인 필요해 스크립트로 재생성
-# 불가(수동 다운로드). build_kepco_usage.py 산출물인 kepco_industrial_usage.json(경량)만 커밋.
+# 한전 빅데이터센터 원본 xlsx(SSO 로그인 필요, 수동 다운로드 — 재생성 불가)
 metadata/kepco_usage/*.xlsx
+
+# 시군별 동-여유풀 중간 산출물(위 gyeonggi/chungnam 패턴 외 위치 대비)
+*_dong_pool.json
