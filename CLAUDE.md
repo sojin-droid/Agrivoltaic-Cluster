@@ -5,7 +5,9 @@
 
 ## 실행 (빌드 시스템 없음 — 순수 정적 + Python)
 - `python3 -m http.server 8002` 후 브라우저에서:
-  - `http://localhost:8002/index.html` — **전국 메인 뷰어**(14개 시군 카드: 시나리오별 후보 수/합계MW/평균 개인비율/grid_ok, 다중선택 시 합계)
+  - `http://localhost:8002/index.html` — **연구 소개 랜딩(Story, 손편집 페이지)** — 핵심 수치·시나리오 모핑 차트
+  - `http://localhost:8002/map.html` — **전국 지도 뷰어**(14개 시군 카드: 시나리오별 후보 수/합계MW/평균 개인비율/grid_ok, 다중선택 시 합계)
+  - `http://localhost:8002/insight.html` · `/method.html` — 데이터 인사이트 / 방법론·출처·한계 (손편집 페이지)
   - `http://localhost:8002/<sido>/<code_name>/<시군>_map.html` — 시군 상세(시나리오·개인비율 상한 t·후보 폴리곤·읍면동 코로플레스·필지 점 레이어)
 - 편의 실행: `run.command`(mac) / `run.bat`(win). `package.json` 없음(npm 불필요).
 - **2026-07-04부로 뷰어가 "산단 반경 선택" 모델에서 "특구 후보 클러스터 열람" 모델로 전면 재구축됨**
@@ -13,21 +15,23 @@
   미리 계산된 후보 클러스터를 필터링해 보기만 함 — 클라이언트 계산 없음).
 
 ## 구조
-- `index.html`, `<시군>_map.html` — **템플릿에서 생성됨(직접 손편집 금지)**. 소스는
-  `scripts/templates/index_template.html`/`viewer_template.html` + `scripts/build_viewer.py`.
-- `scripts/sggs_data.json` — 시군 메타(이름·좌표·산단 URL, 과거 index.html의 SGGS 배열을
-  1회 추출해 고정) — `build_viewer.py`의 입력.
-- `chungnam/*/`, `gyeonggi/*/` — 시군별 폴더. 각 `<시군>_map.html` + 데이터 파일.
-- `supagit/` — 동일 뷰어의 **Supabase 연동 변형**(현재 `config.js` 자격증명 placeholder, 미연결). 범위 밖이면 건드리지 말 것.
-- `scripts/` — 빌드 스크립트. `scripts/legacy/` = 폐기된 `_patch_*.py` 5종(과거 문자열
-  치환 패치 방식, 더 이상 안 씀 — 참고용으로만 보존). `cluster_db/clusters.db` = 옛
-  클러스터 원천 DB(생성 스크립트 유실, `candidate_clusters` 파이프라인과 무관).
+- `map.html`, `<시군>_map.html` — **템플릿에서 생성됨(직접 손편집 금지)**. 소스는
+  `scripts/templates/map_template.html`/`viewer_template.html` + `scripts/build_viewer.py`.
+- `index.html`(Story 랜딩), `insight.html`, `method.html`, `assets/{style.css,site.js}` —
+  **손편집 페이지**(빌더가 건드리지 않음). 디자인 시스템은 PLANiT shipping 사이트에서 이식
+  (시각화 패턴 원본: shipping zip의 `lab.html`). 관리 절차는 `MANAGEMENT.md` 참조.
+- `scripts/sggs_data.json` — 시군 메타(이름·좌표·산단 URL, 과거 전국 뷰어의 SGGS 배열을
+  1회 추출해 고정) — `build_viewer.py`의 입력이자 손편집 페이지의 코드→시군명 매핑 fetch 대상.
+- `chungnam/*/`, `gyeonggi/*/` — 시군별 폴더. 각 `<시군>_map.html`(커밋 대상) + 데이터
+  파일(gitignore — Supabase Storage `agrivoltaic-data` 버킷에서 서빙).
+- `scripts/` — 빌드 스크립트. (2026-07-07 정리: `supagit/`·`cluster_db/`·`run.app/`·
+  `scripts/legacy/`는 죽은 코드로 삭제됨 — 필요 시 git 히스토리에서 복구.)
 
 ## ⚠️ 반드시 지킬 규칙
-- **`index.html`/`<시군>_map.html`을 손으로 직접 편집 금지.** `scripts/templates/*.html`을
+- **`map.html`/`<시군>_map.html`을 손으로 직접 편집 금지.** `scripts/templates/*.html`을
   고치고 `python3 scripts/build_viewer.py`로 전체 재생성할 것(멱등 가드 없음 — 템플릿이
-  항상 진실이라 매번 덮어씀). 과거 `_patch_*.py`(정확 문자열 치환 + 멱등 가드) 방식은
-  폐기, `scripts/legacy/`에 참고용으로만 남음.
+  항상 진실이라 매번 덮어씀). 반대로 `index.html`(랜딩)·`insight.html`·`method.html`은
+  손편집 대상이며 **빌더가 절대 덮어쓰면 안 된다**(build_viewer.py 출력 경로는 map.html 고정).
 - **발전 계산식·표시값을 임의로 바꾸지 말 것**: 설비용량 MW = `면적(m²) × 0.045 ÷ 1000`,
   연간발전량 MWh = `MW × 8760 × 0.15`(설비이용률 15%), 자급률 = `연간발전량 ÷ 소비량 × 100`.
 - **비밀키**: `.env`의 `KEPCO_API_KEY`/`SGIS_CONSUMER_KEY`/`SGIS_CONSUMER_SECRET`는 gitignore 대상.
@@ -36,7 +40,7 @@
   `null`(=`pool_incomplete`, 계통 데이터 일부 없음)은 **분모에서 제외**하고 "판정불가 N건"으로
   별도 표기한다 — null을 fail로 세면 화성·평택처럼 동 데이터 공백이 큰 시군이 실제로는
   계통 여유가 나쁘지 않은데도 부당하게 나빠 보인다. `scripts/build_candidate_summary.py`와
-  `viewer_template.html`/`index_template.html` 양쪽에 동일하게 적용돼 있음 — 한쪽만
+  `viewer_template.html`/`map_template.html` 양쪽에 동일하게 적용돼 있음 — 한쪽만
   고치지 말 것.
 
 ## 데이터 파이프라인 (변경 후 재생성 필요)
