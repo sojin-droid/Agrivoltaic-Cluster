@@ -64,9 +64,15 @@ python3 scripts/build_viewer.py
 - 데이터 URL 상수 `DATA_BASE`는 **각 페이지 `<script>` 상단 + `scripts/build_viewer.py`** 총 4곳 —
   Supabase 프로젝트를 옮기면 전부 바꿔야 합니다 (`grep -rn "taemfahsyeplbrrweopo" .`로 확인).
 
-## 4. 디자인 변경 (색·서체)
+## 4. 디자인 변경 (색·서체·로고)
 
+- **기준은 PLANiT 브랜드 키트**(planit_brand_kit zip의 `planit.md`·`planit_tokens.json`).
+  적용된 매핑: Deep Navy `#0C356A`(--navy) · Bright Blue `#0174BE`(--teal) ·
+  Golden Yellow `#FFC436`(--gold) · Pale Cream `#FFF0CE`(--sky) · Warm Grey `#8D8D8D`(--muted) ·
+  Light Grey `#D3D3D3`(--line). 웹은 브랜드 규정대로 sans-serif(Noto Sans KR)만 사용.
 - `assets/style.css` 맨 위 `:root` 변수만 바꾸면 손편집 3페이지에 일괄 반영.
+- 공식 로고는 `assets/logos/`에 6종(밝은 배경엔 `logo_transparent.png`, 어두운 배경엔
+  `logo_whitefont_transparent@2x.png`, 파비콘·소셜엔 square 버전). 늘리기·기울이기·색 변경 금지.
 - 지도 페이지(생성물)의 색은 템플릿 안에 별도 hex로 있음 — 같은 색으로 맞추려면 템플릿에서 수정 후 재빌드.
 
 ## 5. 새 시각화 추가
