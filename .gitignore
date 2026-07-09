@@ -19,6 +19,8 @@
 /dong_pool.csv
 /dong_pool.json
 /kepco_industrial_usage.json
+/kepco_sector_profile.json
+/cluster_climate_risk.json
 /lowindiv_candidates_S3.json
 
 # 시군 폴더의 데이터 파일(포인트/클러스터/경계/산단 등) — <시군>_map.html(코드)만 git에 남긴다

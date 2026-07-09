@@ -41,6 +41,11 @@ python3 scripts/migrate_to_supabase.py
 ```
 
 - 웹페이지 수치는 전부 fetch라 **업로드만 하면 자동 반영** (index/insight/method 수정 불필요).
+- **업종별 수요 프로필**: 한전 xlsx 갱신 시 `python3 scripts/build_kepco_sector_profile.py`.
+- **기후 리스크(CLIMADA)**: 클러스터가 바뀌면 재평가 필요 — 일반 python이 아니라
+  **climaterisk 워커 env로 실행**: `<climaterisk 경로>/.climada-env/bin/python
+  scripts/build_cluster_climate_risk.py` → 이어서 `build_criteria_scores.py` 재실행
+  (리스크가 6번째 지표로 배지·순위에 반영됨. 리스크 JSON이 없으면 5지표로 자동 축소).
 - 단, index.html 히어로의 `data-target` 정적 기본값(fetch 실패 시 폴백)은 크게 달라졌을 때 한 번 맞춰주세요.
 - **새 데이터 파일**을 추가했으면 `scripts/migrate_to_supabase.py`의 `ROOT_FILES` 배열에 파일명 1줄 추가.
 - 업로드에는 `.env`의 `SUPABASE_SERVICE_ROLE_KEY` 필요 (§7 참고).

@@ -35,6 +35,8 @@ ROOT_FILES = [
     "dong_pool.csv",
     "dong_pool.json",
     "kepco_industrial_usage.json",
+    "kepco_sector_profile.json",
+    "cluster_climate_risk.json",
     "lowindiv_candidates_S3.json",
 ]
 

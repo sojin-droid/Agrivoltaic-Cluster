@@ -199,6 +199,7 @@ fetch(DATA_BASE + "criteria_scores.json").then(r => r.json()).then(c => {
     grid_ok_pct: "계통 여유 판정 가능 후보 중 여유 있음 비율",
     total_mw: "S3 특구 후보 합계 설비용량",
     indiv_ratio: "낮을수록 부지 확보 용이(역방향 지표)",
+    climate_risk: "CLIMADA 기반 태풍·하천범람 미래(RCP4.5/6.0) 연간기대손실률 — 낮을수록 좋음(역방향). 리스크 = 위해×노출×취약성",
   };
   document.querySelector("#crit-table tbody").innerHTML =
     Object.entries(c.indicator_labels).map(([k, label]) =>

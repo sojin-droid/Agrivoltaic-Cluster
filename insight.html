@@ -87,7 +87,7 @@
     </div>
     <p class="lede reveal" style="margin-bottom:24px">진할수록 그 지표에서 14개 시군 중 상대적으로 강하다는 뜻(0~1 정규화). 칸에 올리면 원자료 값이 표시됩니다.</p>
     <div style="overflow-x:auto" class="reveal">
-      <div class="hm-grid" id="hm" style="grid-template-columns:110px repeat(5,minmax(90px,1fr));min-width:640px"></div>
+      <div class="hm-grid" id="hm" style="min-width:640px"></div>
     </div>
     <p class="footnote" id="hm-tip" style="min-height:16px"></p>
   </div>
@@ -172,6 +172,22 @@
   </div>
 </section>
 
+<!-- ═══════════ 6. 시군별 주요 전력수요 업종 프로필 ═══════════ -->
+<section class="alt" id="sectors">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow">Demand Profile · 누가 전기를 쓰나</p>
+        <h2>같은 수요라도, <em>쓰는 업종</em>이 다릅니다.</h2>
+      </div>
+    </div>
+    <p class="lede reveal" style="margin-bottom:24px">한전 실측(KSIC 대분류, 3개년 연평균) 기준 시군별 전력수요 구성. 막대는 상위 3개 업종 + 기타, 칸에 올리면 수치가 표시됩니다. 제조업 비중이 높을수록 RE100 공급의 실수요 타깃이 뚜렷한 지역입니다.</p>
+    <div id="sector-rows" class="reveal"></div>
+    <p class="footnote" id="sector-tip" style="min-height:16px"></p>
+    <p class="footnote" id="sector-note"></p>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <div class="fine">
@@ -186,11 +202,11 @@ const DATA_BASE = "https://taemfahsyeplbrrweopo.supabase.co/storage/v1/object/pu
 const CF_DEFAULT = 0.15; // 설비이용률 기본값(EPSIS) — 발전공식은 CLAUDE.md 고정 규칙
 
 (async function () {
-  let summary, criteria, clusters, kepco, lowindiv, sggs;
+  let summary, criteria, clusters, kepco, lowindiv, profile, sggs;
   try {
-    [summary, criteria, clusters, kepco, lowindiv, sggs] = await Promise.all([
+    [summary, criteria, clusters, kepco, lowindiv, profile, sggs] = await Promise.all([
       "candidate_summary.json", "criteria_scores.json", "cluster_summary.json",
-      "kepco_industrial_usage.json", "lowindiv_candidates_S3.json",
+      "kepco_industrial_usage.json", "lowindiv_candidates_S3.json", "kepco_sector_profile.json",
     ].map(f => fetch(DATA_BASE + f).then(r => { if (!r.ok) throw 0; return r.json(); }))
       .concat(fetch("scripts/sggs_data.json").then(r => { if (!r.ok) throw 0; return r.json(); })));
   } catch (e) {
@@ -244,8 +260,10 @@ const CF_DEFAULT = 0.15; // 설비이용률 기본값(EPSIS) — 발전공식은
   document.getElementById("rank-note").textContent =
     "산단 생산실적 데이터가 없는 시군은 그 지표를 제외하고 나머지 4개를 25%씩 재정규화해 점수화(– 표시). 기준 시나리오: " + criteria.scenario_basis + ".";
 
-  /* ── 2. 히트맵 (lab 14 패턴: 값→색 보간) ── */
+  /* ── 2. 히트맵 (lab 14 패턴: 값→색 보간) — 열 수는 지표 수에 따라 동적 ── */
   const hm = document.getElementById("hm");
+  hm.style.gridTemplateColumns = "110px repeat(" + IND_KEYS.length + ",minmax(90px,1fr))";
+  hm.parentElement.style.minWidth = (110 + IND_KEYS.length * 100) + "px";
   const mix = t => { const a = [235, 245, 251], b = [12, 53, 106]; return "rgb(" + a.map((av, i) => Math.round(av + (b[i] - av) * t)).join(",") + ")"; };
   const byRank = [...rows].sort((a, b) => a.rank - b.rank);
   hm.innerHTML = "<span></span>" + IND_KEYS.map(k =>
@@ -327,6 +345,34 @@ const CF_DEFAULT = 0.15; // 설비이용률 기본값(EPSIS) — 발전공식은
     t.classList.add("on"); renderLI(t.dataset.f);
   }));
   renderLI("all");
+
+  /* ── 6. 시군별 주요 전력수요 업종 (kepco_sector_profile.json) ── */
+  const SEC_COLORS = ["var(--teal)", "var(--navy)", "var(--gold)", "#D3D3D3"];
+  const secBox = document.getElementById("sector-rows");
+  const profCodes = Object.keys(profile.by_code).sort((a, b) =>
+    profile.by_code[b].total_gwh_year - profile.by_code[a].total_gwh_year);
+  const maxTotal = Math.max(...profCodes.map(c => profile.by_code[c].total_gwh_year));
+  secBox.innerHTML = profCodes.map(code => {
+    const e = profile.by_code[code];
+    const others = Math.max(0, 100 - e.top3.reduce((t, s) => t + s.share_pct, 0));
+    const segs = e.top3.map((s, i) => ({ label: s.sector, pct: s.share_pct, gwh: s.gwh_year, color: SEC_COLORS[i] }))
+      .concat([{ label: "기타 " + (Object.keys(e.sectors_gwh_year).length - 3) + "개 업종", pct: others, gwh: null, color: SEC_COLORS[3] }]);
+    const barW = e.total_gwh_year / maxTotal * 100; // 행 너비 = 수요 규모
+    return '<div class="morph-row">' +
+      '<span class="lbl"><b>' + (nameOf[code] || code) + "</b></span>" +
+      '<div class="track" style="background:none;border-radius:99px;overflow:hidden;display:flex;width:' + barW + '%;min-width:120px">' +
+      segs.map(s => '<div data-t="' + (nameOf[code] || code) + " · " + s.label + " " + s.pct + "%" +
+        (s.gwh != null ? " (" + s.gwh.toLocaleString() + " GWh/년)" : "") +
+        '" style="width:' + s.pct + "%;height:16px;background:" + s.color + ';cursor:default"></div>').join("") +
+      "</div>" +
+      '<span class="mv" style="width:110px">' + Math.round(e.total_gwh_year).toLocaleString() + " GWh · 제조 " + Math.round(e.manuf_share_pct) + "%</span></div>";
+  }).join("");
+  secBox.addEventListener("mouseover", ev => {
+    const c = ev.target.closest("[data-t]"); if (!c) return;
+    document.getElementById("sector-tip").textContent = c.dataset.t;
+  });
+  document.getElementById("sector-note").textContent =
+    "막대 길이 = 시군 총수요(최대 대비), 색 구간 = 1·2·3위 업종과 기타. 출처: " + profile.source_label + ". ⚠ " + profile.caveat + ".";
 })();
 </script>
 <script src="assets/site.js"></script>

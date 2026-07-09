@@ -53,21 +53,24 @@ def count_demand_complexes(s):
     return sum(1 for c in load_complexes(complexes_path) if c.get("is_demand_only"))
 
 SCENARIO_BASIS = "S3"  # candidate_summary.json 중 어떤 시나리오를 기준으로 쓸지
+RISK_PATH = os.path.join(ROOT, "cluster_climate_risk.json")  # build_cluster_climate_risk.py 산출물
 
-# 5개 지표 균등 가중치 초안(합계 1.0). growth_pct 데이터 없는 시군은 이 키를 빼고
-# 나머지 4개를 25%씩으로 재정규화(RENORM_WITHOUT_GROWTH)한다 — 값을 조정하려면 여기만 고치면 됨.
+# 균등 가중치 초안(합계 1.0). 어떤 지표든 값이 없는 시군은 그 지표를 빼고 나머지를
+# 비례 재정규화한다(growth_pct의 기존 확정 규칙을 전 지표로 일반화). 조정은 여기만.
+# climate_risk는 CLIMADA 기반 미래(RCP) 연간기대손실률(%) — **낮을수록 좋음(역방향)**,
+# 정규화 시 1-minmax로 뒤집는다(INVERTED_KEYS).
 WEIGHTS = {
-    "growth_pct": 0.20,
-    "demand_cnt": 0.20,
-    "grid_ok_pct": 0.20,
-    "total_mw": 0.20,
-    "indiv_ratio": 0.20,
+    "growth_pct": 1 / 6,
+    "demand_cnt": 1 / 6,
+    "grid_ok_pct": 1 / 6,
+    "total_mw": 1 / 6,
+    "indiv_ratio": 1 / 6,
+    "climate_risk": 1 / 6,
 }
-RENORM_WITHOUT_GROWTH = {
-    "demand_cnt": 0.25,
-    "grid_ok_pct": 0.25,
-    "total_mw": 0.25,
-    "indiv_ratio": 0.25,
+INVERTED_KEYS = {"climate_risk"}
+MISSING_NOTES = {
+    "growth_pct": "국가산단 생산실적 데이터 없음",
+    "climate_risk": "기후 리스크 미평가(cluster_climate_risk.json 없음)",
 }
 
 # 산업단지명(CSV) -> 카드 코드. 국가산단만 존재하는 CSV라 절반 이상의 시군은 매핑이 없음(정상).
@@ -119,34 +122,42 @@ def main():
     total_mw = {s["code"]: bysgg.get(s["code"], {}).get("total_mw", 0) for s in sggs}
     indiv_ratio = {s["code"]: bysgg.get(s["code"], {}).get("avg_indiv_ratio", 0) for s in sggs}
 
-    norm = {
-        "growth_pct": minmax_norm(growth),
-        "demand_cnt": minmax_norm(demand_cnt),
-        "grid_ok_pct": minmax_norm(grid_ok),
-        "total_mw": minmax_norm(total_mw),
-        "indiv_ratio": minmax_norm(indiv_ratio),
-    }
+    climate_risk = {}
+    if os.path.exists(RISK_PATH):
+        risk = json.load(open(RISK_PATH, encoding="utf-8"))
+        climate_risk = {c: e["eai_fut_pct"] for c, e in risk["by_code"].items()}
+    else:
+        print("  [주의] cluster_climate_risk.json 없음 — climate_risk 지표 제외하고 점수화")
+
     raw = {
         "growth_pct": growth, "demand_cnt": demand_cnt, "grid_ok_pct": grid_ok,
-        "total_mw": total_mw, "indiv_ratio": indiv_ratio,
+        "total_mw": total_mw, "indiv_ratio": indiv_ratio, "climate_risk": climate_risk,
     }
+    norm = {}
+    for key, values in raw.items():
+        n = minmax_norm(values)
+        if key in INVERTED_KEYS:  # 낮을수록 좋은 지표는 뒤집기
+            n = {c: 1 - v for c, v in n.items()}
+        norm[key] = n
 
     scored = []
     by_code_out = {}
     for s in sggs:
         code = s["code"]
-        has_growth = code in growth
-        weights = WEIGHTS if has_growth else RENORM_WITHOUT_GROWTH
+        # 값이 있는 지표만으로 가중치 비례 재정규화(지표 누락 시군 페널티 없음 — 확정 규칙)
+        avail = [k for k in WEIGHTS if code in raw[k]]
+        w_sum = sum(WEIGHTS[k] for k in avail)
         score = 0.0
         indicators = {}
-        for key, w in weights.items():
-            n = norm[key].get(code)
-            v = raw[key].get(code)
-            contrib = (n or 0) * w
-            score += contrib
-            indicators[key] = {"value": v, "norm": n, "weight": w}
-        if not has_growth:
-            indicators["growth_pct"] = {"value": None, "norm": None, "weight": 0, "note": "국가산단 생산실적 데이터 없음"}
+        for key in WEIGHTS:
+            if key in avail:
+                w = WEIGHTS[key] / w_sum
+                n = norm[key].get(code)
+                indicators[key] = {"value": raw[key][code], "norm": n, "weight": round(w, 4)}
+                score += (n or 0) * w
+            else:
+                indicators[key] = {"value": None, "norm": None, "weight": 0,
+                                   "note": MISSING_NOTES.get(key, "데이터 없음")}
         by_code_out[code] = {"score": round(score, 4), "indicators": indicators}
         scored.append((code, score))
 
@@ -161,14 +172,15 @@ def main():
 
     out = {
         "scenario_basis": SCENARIO_BASIS,
-        "weights_default": WEIGHTS,
-        "weights_without_growth": RENORM_WITHOUT_GROWTH,
+        "weights_default": {k: round(w, 4) for k, w in WEIGHTS.items()},
+        "renorm_rule": "값이 없는 지표는 그 시군에서 제외하고 나머지 가중치를 비례 재정규화",
         "indicator_labels": {
             "growth_pct": "산단 생산실적 증감률(%)",
             "demand_cnt": "RE100 대형 수요처 수",
             "grid_ok_pct": "계통 여유 비율(%)",
             "total_mw": "특구 후보 합계(MW)",
             "indiv_ratio": "평균 개인소유 비율",
+            "climate_risk": "기후 리스크(연간기대손실률 %·낮을수록 좋음)",
         },
         "by_code": by_code_out,
     }
